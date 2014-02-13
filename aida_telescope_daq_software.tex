@@ -1,0 +1,437 @@
+%%% Preamble
+\documentclass[paper=a4, fontsize=11pt]{scrartcl}	% Article class of KOMA-script with 11pt font and a4 format
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+\usepackage[english]{babel}				% English language/hyphenation
+\usepackage[protrusion=true,expansion=true]{microtype}	% Better typography
+\usepackage{amsmath,amsfonts,amsthm}			% Math packages
+\usepackage[pdftex]{graphicx}				% Enable pdflatex
+\usepackage{url}
+
+%%% Custom sectioning (sectsty package)
+\usepackage{sectsty}					% Custom sectioning (see below)
+\allsectionsfont{\centering \normalfont\scshape}	% Change font of al section commands
+
+%%% Packages for drawings
+\usepackage{tikz}
+\usetikzlibrary{chains,positioning,fit,decorations.pathreplacing,shapes,calc,shadows,fadings}
+
+
+
+%%% path to images
+\graphicspath{ {images/} }
+
+
+%%% some colors
+\definecolor{grey}{rgb}{0.5,0.5,0.5}
+\definecolor{darkgreen}{rgb}{0.078,0.667,0.016}
+\definecolor{gold}{rgb}{0.85,0.65,0}
+\definecolor{deepgreen}{rgb}{0.,0.5,0.}
+
+
+%%% Custom headers/footers (fancyhdr package)
+\usepackage{fancyhdr}
+\pagestyle{fancyplain}
+\fancyhead{}				% No page header
+\fancyfoot[L]{}		% left
+\fancyfoot[C]{}			% center
+\fancyfoot[R]{\thepage}		% Pagenumbering
+\renewcommand{\headrulewidth}{0pt}			% Remove header underlines
+\renewcommand{\footrulewidth}{0pt}			% Remove footer underlines
+\setlength{\headheight}{13.6pt}
+
+
+%%% Equation and float numbering
+\numberwithin{equation}{section}		% Equationnumbering: section.eq#
+\numberwithin{figure}{section}			% Figurenumbering: section.fig#
+\numberwithin{table}{section}				% Tablenumbering: section.tab#
+
+%%% List spacing
+\usepackage{enumitem}
+\setlist{noitemsep} % \setlist{nolistsep} for least space or \setlist{noitemsep} to leave space around whole list
+
+%%% Maketitle metadata
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} 	% Horizontal rule
+
+\title{
+		%\vspace{-1in} 	
+		\usefont{OT1}{bch}{b}{n}
+%		\normalfont \normalsize \textsc{} \\ [25pt]
+		\horrule{0.5pt} \\[0.4cm]
+		\huge Summarizing the Plans for the DAQ and
+                Analysis Software of the AIDA Telescope: Toward high
+                rates and
+                \textit{one-trigger-per-particle} Operation\\
+		\horrule{2pt} \\[0.5cm]
+}
+\author{}
+\date{\today}
+
+
+%%% Begin document
+\begin{document}
+% Define the layers for the tikz images
+\pgfdeclarelayer{background} \pgfdeclarelayer{foreground}
+\pgfsetlayers{background,main,foreground}
+
+\maketitle
+\section{Introduction}
+The current version of EUDAQ (v1.X) offers a flexible and proven
+framework for data taking with multiple devices in a test
+beam. However, it is based on the concept of one-trigger-per-frame
+delivered by the Mimosa and it suffers from limitations when going to
+high trigger rates. Some fundamental changes going toward a v2.0 (or
+AIDAQ) are needed.
+
+To keep the amount of work needed small (for us and others) and to allow the project to
+be completed in small chunks (i.e. by different people), the changes
+should generally/where possible be kept
+\begin{itemize}
+\item backward compatible\footnote{Backward compatible meaning no
+    changes to the \emph{producer's} source code needed; if any
+    changes are needed, these need to be well motivated, minor and
+    thoroughly documented. Binary compatibility with old producers or
+    data files on the other hand is not being foreseen.} to existing DUT integrations,
+\item minimally invasive, and
+\item modular.
+\end{itemize}
+
+\section{DAQ}
+\label{sec:daq}
+High trigger rates will require the ability to store large amounts of
+data in short time. Therefore, potentially slow links such as Ethernet
+should be avoided. Allowing each device's producer to connect to its
+own (local) data collector makes it possible to spread the load onto
+different machines.
+
+Furthermore, one-trigger-per-particle operation requires to take
+different device's data delivery concepts and speeds into
+account. For example, devices integrating over longer periods of time
+will send data blocks that cover a range of triggers. This breaks the
+current concept of a synchronous event number across devices.
+
+\subsection{New data format: \emph{packets} instead of \emph{events}}
+\label{sec:event}
+
+\begin{figure}[htbp]
+  \centering
+  \include{packet_format}
+  \caption{The new data format: packets structured into list of meta
+    data (timestamps/counter values) with type ID and a corresponding
+    block of data.}
+\label{fig:packetformat}
+\end{figure}
+
+Instead of sending the data in \emph{events} corresponding to single
+triggers, producers send the data in \emph{packets} which can cover
+arbitrary number of triggers and/or time ranges. This allows to
+integrate different DAQ concepts into EUDAQ, such as untriggered or
+data-driven devices.
+
+The meta data format is designed to allow partial data merging on
+request via a pull mechanism (see section~\ref{sec:integrity}).
+
+\begin{itemize}
+\item each device records and sends its data in arbitrary units ``natural'' to
+  its operation (e.g. a set of frames for Mimosas)
+
+\item the \textbf{packet header} consists of:
+  \begin{itemize}
+  \item a start marker
+  \item the \emph{packet number} is set by each producer for
+    every data block send to the data collector (starting at 1)
+  \item the packet type is a flag that indicates which
+    detector/producer generated the data or which decoder to use
+  \end{itemize}
+\item the \textbf{meta data} to each packet consists of a length field and a
+  list of counter entries with three fields: 
+  \begin{itemize}
+  \item \emph{TLU} bit to indicate whether or not this counter
+    corresponds to a TLU signal,
+  \item a \emph{TYPE} ID with a width of 4-bit which indicates the nature of the counter,
+    e.g. trigger number, clock count (i.e. timestamp) of a TLU-event, or
+    timestamp of begin/end of packet, and
+  \item the 59-bit wide counter value.
+  \end{itemize}
+  This allows to store as meta data:
+  \begin{itemize}
+  \item a list of trigger numbers,
+  \item a range in time during which the data was recorded, and/or
+  \item a list of trigger timestamps.
+  \end{itemize}
+\item \textbf{Trailer}: A 64-bit field for storing a \emph{check sum} (optional)
+  
+\end{itemize}
+
+Implications:
+\begin{itemize}
+\item as long as the old data format (one packet per trigger) is
+  still supported, all existing DUT producers should work as expected
+  after recompiling with the new underlying packet design.
+\item the packet number does not (necessarily) match the trigger number
+  and is not synchronous between devices. Specifically, the size and delivery rate
+  of events is different for each device.
+\item run control, data collectors and online monitors need to be adjusted so
+  support the new format.
+\end{itemize}
+
+Remaining questions/issues/details yet to be decided:
+\begin{itemize}
+\item Can the packet format be introduced without having to adjust any
+  code in the producers?
+\item Can the old ``event'' be renamed ``packet'' for clarity and
+  consistency without having to make significant code changes in
+  existing producers?
+\item What meta data types (\emph{TYPE} field) need to be supported?
+  For current list of suggestions, see~\ref{app:typeid}.
+\item What/how many detector/packet types (type field in packet
+  header) need to be supported? For a list of suggestions,
+  see~\ref{app:packettype}. Are 4-bit enough to identify all required types?
+\end{itemize}
+
+
+\subsection{Spreading the load: multiple data collectors}
+\label{sec:datacollectors}
+In order to avoid slow network links and to be able to store data on
+local machines, EUDAQ should support multiple data collectors,
+i.e. one per (device) processor as illustrated in figure~\ref{fig:schematiclayout}.
+
+\begin{figure}[htbp]
+  \centering
+  \include{schematic_multiple_dc}
+  \caption{Schematic layout of the proposed system with multiple data
+    collectors each writing onto a separate disk.}
+\label{fig:schematiclayout}
+\end{figure}
+
+Implications:
+\begin{itemize}
+\item run control needs to assign producers to data collectors. This
+  should preferably be determined by the configuration file.
+\item online monitoring becomes more complicated as the data has to be
+  collected from several sources (discussed in
+  section~\ref{sec:online-monitoring}) but a single instance of the online monitor
+  could run on each data collector as before.
+\end{itemize}
+
+Issues/to be decided:
+\begin{itemize}
+\item where is the data of the TLU producer stored?
+\item will one data collector per processor be required or do we have
+  a (central) default one as fallback?
+\item how is the configuration of the data collectors done in the
+  config file? How do they identify themselves to run control?
+\item how will the files be managed?
+\end{itemize}
+
+\subsection{Online data integrity checks and selected data packet polling}
+\label{sec:integrity}
+Depending on how the devices are integrated (i.e. whether they are running
+synchronous or not), quite thorough consistency checks are
+possible using the trigger and clock information from the TLU:
+
+\begin{itemize}
+\item correct trigger IDs with matching time stamp
+\item correct trigger IDs
+\item device active during all triggers (from time stamp ranges)
+\item total number of triggers (difficult during run time if the trigger
+  rates are constantly high, assessable with certainty only after run stop)
+\end{itemize}
+
+This task could be performed by a \emph{run monitor} processor, that
+collects (full) packets by polling the data collectors for specific
+trigger and clock ranges.
+
+As shown in figure~\ref{fig:schematicpolling}, this can be performed
+in two steps. First, a hardware signal from the TLU to all DAQs is
+issued on request to allow very fast devices to cache packets for
+later retrieval by the \emph{run monitor}. This TLU signal is
+timestamped and included in the next packet to mark it. Then, the
+\emph{data collectors} are requested to send all packets containing
+such TLU marker timestamp. If a DAQ does not include a timestamp for
+this signal in its packets, the \emph{run monitor} can ask for the
+trigger numbers or clock ranges found in the marked packets from other
+DAQs or derive a time/trigger number for the trigger following the
+signal from information of the TLU producer.
+
+At first, only the latter mechanism (poll for specific trigger number
+or clock range) should be implemented.
+
+\begin{figure}[htbp]
+  \centering
+  \include{schematic_polling}
+  \caption{Schematic layout of the proposed polling mechanism for
+    selecting data packets corresponding to specific trigger
+    timestamp/number: (1) the run monitor requests via the TLU
+    producer a marker signal from the TLU which is sent to all
+    connected DAQs; these add an additional marker meta data entry in
+    their next packet and the data collector caches these. (2) all
+    data collectors are requested to send the packets to the run
+    monitor, either from cache or re-read from storage.}
+\label{fig:schematicpolling}
+\end{figure}
+
+Implications:
+\begin{itemize}
+\item It would allow to remove the current event and trigger
+  counting from \emph{run control} or setup \emph{run control} as full
+  run monitor.
+\end{itemize}
+
+To be decided/discussed:
+\begin{itemize}
+\item How to treat DAQs running without TLU-synchronization?
+\item How does the \emph{run monitor} access the information collected
+  by the TLU producer?
+\item How should the fallback from TLU-signaled data request to
+  request via trigger number/timestamp be handled?
+\end{itemize}
+
+\subsection{Online monitoring}
+\label{sec:online-monitoring}
+Online monitoring (i.e. correlation plots) potentially very difficult:
+
+\begin{itemize}
+\item data stream are now asynchronous between devices
+\item data is stored at several locations
+\item data blocks are potentially large i.e. spanning many triggers
+\end{itemize}
+
+However, online monitoring of a device class (e.g. all Mimosa planes)
+is still possible with only minor adjustments to the current online
+monitor.
+
+Correlations, even of tracks fitted to aligned hits, could be studied
+in immediate offline analysis.
+
+Using the polling mechanism discussed before that flushes e.g. ranges of triggers to a
+central location, the integrity checks could be extended to a
+semi-online monitoring based on an offline analysis of the collected data.
+
+Advantages of using the offline analysis framework:
+\begin{itemize}
+\item very modular approach
+\item all work spent on integration benefits the later analysis
+\item data is thoroughly and in more detail verified than (easily) possible
+  with pure online monitoring
+\end{itemize}
+
+\section{Analysis}
+\label{sec:analysis}
+The analysis chain will be based on the EUTelescope framework. The
+goal is to deliver time-tagged tracks from the telescope that can be
+matched to the DUT data.
+
+The conversion to LCIO, clustering, and transformation of timing
+information to the TLU clock as global reference can be performed on
+each data sample separately. But for track finding, all data belonging
+to a given trigger needs to be present to allow spacial matching. The
+workflow for the telescope data (Mimosa26 and timing reference plane)
+could look as follows:
+
+\begin{enumerate}
+\item convert data to LCIO
+\item use information from TLU to synchronize timing information to the
+  TLU clock
+\item verify that all triggers are present and have been seen at the
+  correct time; correct if possible (optionally).
+\item store hits in $x,y,z$ and $t_1, t_2$ coordinates, where the
+  latter determine the time bin in which this hit occurred.
+\item do spacial track matching, associate the smallest time interval
+  found in a fitted hit with the track.
+\item match time-tagged telescope tracks with DUT for analysis.
+\end{enumerate}
+
+Implications:
+\begin{itemize}
+\item after repeating this for all data streams, the resulting LCIO
+  event corresponds to a specific trigger ID and will have data
+  collections from all devices.
+\item still, the final event might not be assigned a single but
+  several triggers if they were issued quicker than the
+  integration time of the fastest device.
+\end{itemize}
+
+Requirements/changes needed/to be discussed:
+\begin{itemize}
+\item make TLU information centrally available and store it in LCIO format
+\item time stamps $t_1$ and $t_2$ in the LCIO event (what floating
+  point precision is required?)
+\item write TLU clock sync for Mimosa26 data with multiple triggers
+  per frame
+\item figure out how to efficienctly handle multiple LCIO files and merge
+  collections spanned across several events ($\rightarrow$ ask ILCSoft developers).
+\item decide whether to output time-tagged telescope tracks or to
+  handle data of telescope and DUT simultaneously when merging
+\item produce monitoring/correlation histograms useful during data taking
+\item provide geometry information up front (e.g. within EUDAQ)
+\item optimize the analysis chain to work out-of-the-box in as many
+  cases as possible
+\end{itemize}
+
+\newpage
+\appendix
+
+\section{Packet header: \emph{Packet type} field values}
+\label{app:packettype}
+\begin{enumerate}
+\item TLU
+\item Mimosa26
+\item ATLAS FEI-4
+\item CMS Pixel
+\item TimePix2
+\item TimePix3
+\item $\ldots$?
+\end{enumerate}
+
+\section{Packet meta data list: \emph{TYPE} field values}
+\label{app:typeid}
+\begin{enumerate}
+\item trigger counter
+\item trigger timestamp (TLU clock cycle counter)
+\item sync signal counter
+\item sync signal timestamp (TLU clock cycle counter)
+\item begin of shutter timestamp (TLU clock cycle counter)
+\item end of shutter timestamp (TLU clock cycle counter)
+\item begin of this packet data recording timestamp (TLU clock cycle counter)
+\item end of this packet data recording timestamp (TLU clock cycle counter)
+\item trigger timestamp (arbitrary clock)
+\item sync signal timestamp (arbitrary clock)
+\item begin of shutter timestamp (arbitrary clock)
+\item end of shutter timestamp (arbitrary clock)
+\item begin of this packet data recording timestamp (arbitrary clock)
+\item end of this packet data recording timestamp (arbitrary clock)
+\item $\ldots$?
+\end{enumerate}
+
+\section{Mimosa Readout}
+
+\subsection{Firmware}
+\label{sec:firmware}
+\begin{itemize}
+\item replace existing firmware with ``official'' one from IPHC Strasbourg
+\item request support for continuous readout
+\item use global clock from TLU?
+\end{itemize}
+
+\subsection{Producer/connection to EUDAQ}
+\label{sec:prod-eudaq}
+\begin{itemize}
+\item drop current NI producer and write Mimosa producer interfaced
+  to Strasbourg DAQ software
+\item potentially needs to run on Windows; communication to Strasbourg
+  DAQ through TCP/IP interface?
+\item Clocking out of the TLU trigger ID should only be performed once
+  per frame maximum.
+\item when packaging data to be sent to data collector, ``pad''
+  buffered frames with one earlier and one later frame to guarantee
+  that triggers received during the readout are contained in this data
+  block.
+\item record position of pivot pixel at time of trigger \emph{or} use
+  global TLU clock and time-stamp beginning/end of frames
+\end{itemize}
+
+
+%%% End document
+\end{document}

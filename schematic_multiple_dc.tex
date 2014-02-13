@@ -1,0 +1,92 @@
+
+  \begin{tikzpicture}[      
+    terminal/.style={ rectangle,minimum size=6mm,rounded corners=3mm,
+        very thick,draw=black!50,
+        top color=white,bottom color=black!20},
+      block/.style ={rectangle, draw=blue, thick, fill=blue!20,
+        text width=5em, text centered, rounded corners,
+        minimum height=4em},
+      line/.style ={draw, thick, -latex,shorten >=2pt},
+      cloud/.style ={draw=red, thick, ellipse,fill=red!20,
+        minimum height=2.5em},
+      minorcloud/.style ={draw=orange, thick, ellipse,fill=orange!20,
+        minimum height=2.5em},     
+      bluecloud/.style ={draw=blue, thick, ellipse,fill=blue!20,
+        minimum height=2.5em}      
+      ] 
+      % TELESCOPE
+      \node[] (telescope) {}; 
+      \draw [line width=2pt,orange] ($(telescope.north)+(-0.2,.6)$) --++(0,0.5);
+      \draw [line width=2pt,orange] ($(telescope.north)+(-0.3,.75)$) node (scint2) {} --++(0.2,0.25);
+      \draw [line width=2pt,orange] ($(telescope.north)+(3.8,.6)$) --++(0,0.5);
+      \draw [line width=2pt,orange] ($(telescope.north)+(3.7,.75)$) node (scint1) {} --++(0.2,0.25);
+      \draw [line width=2pt,grey] ($(telescope.north)+(0,.3)$) --++(3.7,0);
+      \draw [line width=2pt,grey] ($(telescope.north)+(-0.1,.05)$) --++(3.5,0);
+      \foreach \i in {0,1,2,4,5,6} {
+        \draw[blue,top color=blue,bottom color=blue!50] ($(telescope.north)+\i*(.55,0)$) -- ++ (0,1.25) -- ++ (0.3,0.3) -- ++ (0,-1.25) -- cycle;
+        \node (plane\i) at ($(telescope.north)+(0.1,0.75)+\i*(.55,0)$) {};
+        \draw[very thick, blue] ($(telescope.north)+\i*(.55,0)$) -- ++ (0,1.25) -- ++ (0.3,0.3);
+        \draw[darkgreen, fill] ($(telescope.north)+(0.1,0.75)+\i*(.55,0)$) -- ++ (0,0.15) -- ++ (0.1,0.1) -- ++ (0,-0.15) -- cycle;
+      }
+      \node (dut) at ($(telescope.north)+3*(.55,0)$) {};
+      \node (lastplane) at ($(telescope.north)+(0.1,0.75)+6*(.55,0)$) {};
+      \draw[yellow!50,top color=gold,bottom color=yellow!50] (dut.base) -- ++ (0,1.25) -- ++ (0.3,0.3) -- ++ (0,-1.25) -- cycle;
+      \draw[very thick, gold] (dut.base) -- ++ (0,1.25) -- ++ (0.3,0.3);
+
+      %HARDWARE
+      \node[terminal, bottom color=orange, above=2 of dut] (tlu) {\large TLU};
+      \node[terminal, bottom color=gold,below=of dut] (dutdaq) {\large DUT DAQ};
+      \node[terminal, bottom color=deepgreen,below=of dutdaq] (nidaq) {\large Telescope DAQ};
+      \node[above=.3 of tlu] (hardwaretext) {\large Hardware};
+
+      % EUDAQ
+      \node[block, right=of lastplane] (dutproducer) {\large DUT Producer};
+      \node[block, above=of dutproducer] (tluproducer) {\large TLU Producer};
+      \node[block, below=of dutproducer] (niproducer) {\large Telescope Producer};
+      \node[cloud, right=of tluproducer] (eurun) {\large Run Control};
+      \node[bluecloud, below=of eurun] (datacollector1) {\large Data Collector 1};
+      \node[bluecloud, below=of datacollector1] (datacollector2) {\large Data Collector 2};
+      \node[minorcloud, below=of datacollector2] (onlinemon) {\large Online Monitor 1};
+      \node[minorcloud, below=of onlinemon] (logcollector) {\large Log Collector};
+
+      
+      %CONNECTIONS
+      %hardware connections
+      \draw [<-,thick,orange] (tlu) -| (scint1);
+      \draw [dashed, thick,orange] (tlu) -| ($(scint2)+(-.2,0)$) |- (dutdaq);
+      \draw [dashed, thick,orange] (nidaq) -| ($(scint2)+(-.2,0)$);
+      \draw [<->,deepgreen, thick] (nidaq) -| (lastplane) node[pos=0.85] (nidaqconnection) {};     
+      \foreach \i in {0,1,2,4,5,6} {
+      \draw [->,deepgreen, thick] (nidaqconnection.base) -| (plane\i);}
+      \draw [<->,gold, thick] (dutdaq) -- (dut);
+      %hardware-producer connections
+      \draw[latex-latex,thick,deepgreen]  (nidaq)  -- (niproducer);
+      \draw[latex-latex,thick,gold]    (dutdaq) -- (dutproducer);
+      \draw[latex-latex,thick,orange] (tlu)    -- (tluproducer);
+      %datacollector connections
+      \draw[-latex,thick,blue] (niproducer)  -- (datacollector1);
+      \draw[-latex,thick,blue] (dutproducer) -- (datacollector2);
+      \draw[-latex,thick,blue] (tluproducer) -- (datacollector1);
+      \draw[-latex,thick,dashed,blue] (datacollector1.east) -- ++ (0.35,0) |- (onlinemon);
+
+      % harddisk
+      \node (harddisk1) at ($(datacollector1.south) +(1.7,-.35)$) {\includegraphics[width=0.75cm]{drive-harddisk}};
+      \draw [-latex,thick,blue] (datacollector1.south)-- (harddisk1) node [sloped,below,pos=0.4,blue] {write};
+      \node (harddisk2) at ($(datacollector2.south) +(1.7,-.35)$) {\includegraphics[width=0.75cm]{drive-harddisk}};
+      \draw [-latex,thick,blue] (datacollector2.south)-- (harddisk2) node [sloped,below,pos=0.4,blue] {write};
+
+      %BACKGROUND
+      \begin{pgfonlayer}{background}
+        %hardware box
+        \node [fill=black!20,rounded corners,fit=(scint1)(scint2)(hardwaretext)(nidaq)] {};
+        \node [fill=black!10,rounded corners,fit=(scint1)(scint2)(tlu)(nidaq)] {};
+        %computer image
+          \node [right=of lastplane,opacity=0.2] (computer){\includegraphics[width=.5\textwidth]{computer}};
+          \node [below=2 of computer.north,opacity=0.2,red] (eudaqtext){\LARGE EUDAQ};
+      \end{pgfonlayer}
+      % HILFSLINIEN
+      % \draw[help lines] (0,-3) grid (6,3);
+      % \foreach \x in {0,...,6} {
+      % \foreach \y in {-3,...,3} {
+      % \node at (\x,\y) {\tiny \blue (\x,\y)};  };  };    
+  \end{tikzpicture}

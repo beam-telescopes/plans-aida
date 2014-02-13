@@ -1,0 +1,114 @@
+\begin{tikzpicture}[
+	scale=0.75,
+	start chain=1 going below, 
+	start chain=2 going below,
+	node distance=1mm,
+	desc/.style={
+		scale=0.75,
+		on chain=1,
+		rectangle,
+		rounded corners,
+		draw=black, 
+		very thick,
+		text centered,
+		text width=4.5cm,
+		minimum height=1.1cm,
+                inner sep=0ex,
+                outer sep=0ex
+		},
+	empty/.style={
+		scale=0.75,
+		on chain=1,
+		text centered,
+		text width=4.5cm,
+		minimum height=1.1cm,
+                inner sep=0ex,
+                outer sep=0ex
+		},
+	listblock/.style={
+		scale=0.75,
+		on chain=1,
+		rectangle split,
+		rectangle split horizontal,
+                rectangle split parts=3,
+		text width=1.5cm,
+		draw=black, 
+		thick,
+		text centered,
+		minimum height=1.1cm,
+                inner sep=0ex,
+                outer sep=0ex
+		},
+	data/.style={
+		scale=0.75,
+		on chain=1,
+		rectangle,
+		text width=4.5cm,
+		draw=black, 
+		thick,
+		text centered,
+		minimum height=1.1cm,
+                inner sep=0ex,
+                outer sep=0ex
+		},
+	it/.style={
+		fill=blue!10
+	},
+	size/.style={
+		scale=0.75,
+		on chain=2,
+		minimum height=11mm,
+		text width=5cm,
+                inner sep=0ex,
+                font=\ttfamily
+	},
+	every node/.style={font=\sffamily}
+]
+
+% PACKET HEADER
+% descriptions
+\node [desc] (marker) {Start marker};
+\node [desc] (number) {Packet number};
+\node [desc] (type) {Packet type};
+% sizes
+\chainin (marker); % Start right of Level 5
+\node [size, right= of marker] (msize) {to be decided};
+\node [size] (nsize) {60-bit};
+\node [size] (tsize) {4-bit};
+\draw[decorate,decoration={brace,mirror,raise=6pt,amplitude=10pt}, thick]
+    (marker.north west)--(type.south west) node [midway] (hbrace){}; 
+\node[left=.5cm of hbrace] (header) {Packet Header};
+
+
+% METADATA
+% descriptions
+\node [desc] (nentries) {Number of entries $N$};
+\node [listblock] (mentry1) {TLU \nodepart{second} TYPE \nodepart{third} COUNT};
+\node [empty] (lmore) {\vdots};
+% sizes
+\node [size] {to be decided};
+\node [size] {$N\times$ 64-bit (1|4|59 bit)};
+\node [size] {\phantom{\vdots}};
+\draw[decorate,decoration={brace,mirror,raise=6pt,amplitude=10pt}, thick]
+    (nentries.north west)--(lmore.south west) node [midway] (lbrace){}; 
+\node[left=.5cm of lbrace] (list) {Meta data list};
+
+
+% DATA
+% descriptions
+\node [desc] (length) {Length of block $L$};
+\node [data] (dentry1) {DATA};
+\node [empty] (dmore) {\vdots};
+% sizes
+\node [size] {to be decided};
+\node [size] {$L\times$ 64-bit};
+\node [size] {\phantom{\vdots}};
+\draw[decorate,decoration={brace,mirror,raise=6pt,amplitude=10pt}, thick]
+    (length.north west)--(dmore.south west) node [midway] (dbrace){}; 
+\node[left=.5cm of dbrace] (data) {Data block};
+
+% CRC
+\node [desc] (crc) {CRC};
+\node [size] (crcsize) {64-bit};
+
+\end{tikzpicture}
