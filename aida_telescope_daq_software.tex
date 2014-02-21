@@ -261,7 +261,7 @@ processors. These collect packets (or optionally their meta-data only) by
 accessing the files written by the data collectors and retrieving
 specific trigger and clock ranges.
 
-Implications/notes:
+To be decided/implications/notes:
 \begin{itemize}
 \item the run monitor could start by requesting meta-data only by the
   readers; verifying consistency and finding common ranges suitable
@@ -303,7 +303,7 @@ Implications/notes:
 This run-monitor triggered data retrieval mechanism can be modified to
 include TLU-issued markers that are signaled to all connected DAQ
 systems, allowing hardware-aided pre-selection of packets: As shown in
-figure~\ref{fig:schematicpolling}, this can be performed in two
+figure~\ref{fig:schematicreading}, this can be performed in two
 steps. First, a hardware signal from the TLU to all DAQs is issued on
 request to allow very fast devices to cache packets for later
 retrieval by the \emph{run monitor}. This TLU signal is timestamped
@@ -326,16 +326,16 @@ for specific trigger number or clock range) should be implemented.
 
 \begin{figure}[htbp]
   \centering
-  \include{schematic_polling}
-  \caption{Schematic layout of the proposed polling mechanism for
-    selecting data packets corresponding to specific trigger
+  \include{schematic_reading}
+  \caption{Schematic layout of the proposed collection mechanism for
+    reading selected data packets corresponding to specific trigger
     timestamp/number: (1) the run monitor requests via the TLU
     producer a marker signal from the TLU which is sent to all
     connected DAQs; these add an additional marker meta data entry in
     their next packet and the data collector caches these. (2) all
     data collectors are requested to send the packets to the run
     monitor, either from cache or re-read from storage.}
-\label{fig:schematicpolling}
+\label{fig:schematicreading}
 \end{figure}
 
 Implications:
