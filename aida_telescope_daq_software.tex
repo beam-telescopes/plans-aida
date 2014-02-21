@@ -207,8 +207,20 @@ i.e. one per (device) processor as illustrated in figure~\ref{fig:schematiclayou
 
 Implications:
 \begin{itemize}
-\item run control needs to assign producers to data collectors. This
-  should preferably be determined by the configuration file.
+\item Producers need to be associated with specific data collectors;
+  possible approaches:
+  \begin{itemize}
+  \item run control assigns producers to data
+    collectors; the appropriate data collector could be determined by the
+    configuration file or by identical processor and data collector names.
+  \item every producer is informed of every available data collector
+    by run control and chooses one according e.g. to its name; this
+    also allows for example the TLU producer to send its data to
+    \emph{every} data collector. \textbf{Note:} Need to verify whether
+    or not the producer-side modifications are limited to the
+    \texttt{Producer::OnData()} implementation or if changes to actual
+    producer's code would be necessary.
+  \end{itemize}
 \item online monitoring becomes more complicated as the data has to be
   collected from several sources (discussed in
   section~\ref{sec:online-monitoring}) but a single instance of the online monitor
@@ -217,12 +229,15 @@ Implications:
 
 Issues/to be decided:
 \begin{itemize}
-\item where is the data of the TLU producer stored?
+\item by what method should producers be associated with specific data collectors?
+\item should the TLU producer's data be treated special in any way? It
+  could be sent to a separate data collector or even to all that are available.
 \item will one data collector per processor be required or do we have
   a (central) default one as fallback?
-\item how is the configuration of the data collectors done in the
-  config file? How do they identify themselves to run control?
-\item how will the files be managed?
+\item if one data collector has more than one producer assigned, how
+  is the storage of the received events managed? We could foresee an
+  index file containing a copy of the meta data and a seek position
+  for the main binary file, allowing faster access to specific packets.
 \end{itemize}
 
 \subsection{Online data integrity checks and selected data packet polling}
