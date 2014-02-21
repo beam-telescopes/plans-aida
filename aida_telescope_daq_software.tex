@@ -240,7 +240,8 @@ Issues/to be decided:
   for the main binary file, allowing faster access to specific packets.
 \end{itemize}
 
-\subsection{Online data integrity checks and selected data packet polling}
+
+\subsection{Online data integrity checks and selected data packet reading}
 \label{sec:integrity}
 Depending on how the devices are integrated (i.e. whether they are running
 synchronous or not), quite thorough consistency checks are
@@ -254,24 +255,74 @@ possible using the trigger and clock information from the TLU:
   rates are constantly high, assessable with certainty only after run stop)
 \end{itemize}
 
-This task could be performed by a \emph{run monitor} processor, that
-collects (full) packets by polling the data collectors for specific
-trigger and clock ranges.
+This task will be performed by a central \emph{run monitor} processor
+while the retrieval of the packets will be performed by \emph{reader}
+processors. These collect packets (or optionally their meta-data only) by
+accessing the files written by the data collectors and retrieving
+specific trigger and clock ranges.
 
-As shown in figure~\ref{fig:schematicpolling}, this can be performed
-in two steps. First, a hardware signal from the TLU to all DAQs is
-issued on request to allow very fast devices to cache packets for
-later retrieval by the \emph{run monitor}. This TLU signal is
-timestamped and included in the next packet to mark it. Then, the
-\emph{data collectors} are requested to send all packets containing
-such TLU marker timestamp. If a DAQ does not include a timestamp for
-this signal in its packets, the \emph{run monitor} can ask for the
-trigger numbers or clock ranges found in the marked packets from other
-DAQs or derive a time/trigger number for the trigger following the
-signal from information of the TLU producer.
+Implications/notes:
+\begin{itemize}
+\item the run monitor could start by requesting meta-data only by the
+  readers; verifying consistency and finding common ranges suitable
+  e.g. for determining correlations it could then proceed to request
+  specific packets for each device from the readers (correlation logic
+  only inside run monitor).
+\item alternatively, the readers can find the packet(s) corresponding
+  to a TLU trigger or TLU clock range on this information alone; this
+  would allow e.g. the configuration of a specific reader with
+  additional device-specific information (e.g. clock speed) but would
+  probably require TLU information to be present inside each data
+  collector's file.
+\item the reader processor will use file-system access to the data; a
+  index file containing all the packets' meta information and seek
+  position for the main binary file could speed up the time needed to
+  retrieve the desired packet.
+\item if a device's DAQ does not include fully-qualified identifiers
+  for the packet meta-data to associate it to a trigger (i.e. TLU
+  trigger number and/or TLU clock-based timestamp or range), the
+  information of the TLU might be needed to determine the correct
+  packet(s); it could therefore be useful to have the TLU producer
+  send its data to all data collectors
+\item the association reader processor and data collector could be
+  handled as discussed in section~\ref{sec:datacollectors} (e.g. by name)
+\item the reader processors should be separate from the full system in
+  such a way, that their crashing does not impact the data taking;
+  furthermore, reader processors and run monitor should be able to
+  reconnect to a running DAQ. This could be accomplished by having run
+  control announce all available data collectors and log collectors to
+  reconnecting processors that are neither device data-sources or
+  device data-sinks and sending the currently active configuration
+  file (in-run configure and start).
+\item alternatively, the reader and run monitor constitute a separate
+  software that does only minimally or not at all interact with the
+  core EUDAQ system; this could provide benefits for the stability but
+  might make integration and configuration more complicated.
+\end{itemize}
 
-At first, only the latter mechanism (poll for specific trigger number
-or clock range) should be implemented.
+This run-monitor triggered data retrieval mechanism can be modified to
+include TLU-issued markers that are signaled to all connected DAQ
+systems, allowing hardware-aided pre-selection of packets: As shown in
+figure~\ref{fig:schematicpolling}, this can be performed in two
+steps. First, a hardware signal from the TLU to all DAQs is issued on
+request to allow very fast devices to cache packets for later
+retrieval by the \emph{run monitor}. This TLU signal is timestamped
+and included in the next packet to mark it. Then, the \emph{reader
+  processors} are requested to send all packets containing such TLU
+marker timestamp. If a DAQ does not include a timestamp for this
+signal in its packets, either the run monitor or the \emph{reader}
+determines the device's packet(s) that would correspond to the
+time/trigger range containing the marker signal and retrieves it.
+
+Implications:
+\begin{itemize}
+\item this system requires information from the TLU producer to be
+  available if the device's DAQ itself does not react to the marker signal
+\end{itemize}
+
+
+At first, only the latter mechanism (purely run-monitor-driven request
+for specific trigger number or clock range) should be implemented.
 
 \begin{figure}[htbp]
   \centering
@@ -342,7 +393,7 @@ The conversion to LCIO, clustering, and transformation of timing
 information to the TLU clock as global reference can be performed on
 each data sample separately. But for track finding, all data belonging
 to a given trigger needs to be present to allow spacial matching. The
-workflow for the telescope data (Mimosa26 and timing reference plane)
+work flow for the telescope data (Mimosa26 and timing reference plane)
 could look as follows:
 
 \begin{enumerate}
@@ -375,7 +426,7 @@ Requirements/changes needed/to be discussed:
   point precision is required?)
 \item write TLU clock sync for Mimosa26 data with multiple triggers
   per frame
-\item figure out how to efficienctly handle multiple LCIO files and merge
+\item figure out how to efficiently handle multiple LCIO files and merge
   collections spanned across several events ($\rightarrow$ ask ILCSoft developers).
 \item decide whether to output time-tagged telescope tracks or to
   handle data of telescope and DUT simultaneously when merging
