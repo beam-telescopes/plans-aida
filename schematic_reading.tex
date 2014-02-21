@@ -44,10 +44,12 @@
       \node[block, above=of dutproducer] (tluproducer) {\large TLU Producer};
       \node[block, below=of dutproducer] (niproducer) {\large Telescope Producer};
       \node[cloud, right=of tluproducer] (eurun) {\large Run Control};
-      \node[bluecloud, below=of eurun] (datacollector1) {\large Data Collector 1};
-      \node[bluecloud, below=of datacollector1] (datacollector2) {\large Data Collector 2};
-      \node[minorcloud, below=of datacollector2] (logcollector) {\large Log Collector};
-      \node[minorcloud, below=of logcollector] (runmonitor) {\large Run Monitor};
+      \node[bluecloud] (datacollector1) at ($(eurun.south)-(1.55,2)$) {\large DC 1};
+      \node[bluecloud, below=of datacollector1] (datacollector2) {\large DC 2};
+      \node[bluecloud, right=2em of datacollector1] (reader1) {\large reader 1};
+      \node[bluecloud, right=2em of datacollector2] (reader2) {\large reader 2};
+      \node[minorcloud, below=1em of eurun] (logcollector) {\large Log Collector};
+      \node[minorcloud, below=14em of logcollector] (runmonitor) {\large Run Monitor};
       \node[block, draw=black, fill=black!20, left=of runmonitor] (analysis) {\large Analysis};
 
 
@@ -56,36 +58,37 @@
       %hardware connections
       \draw [<->,gold, thick] (dutdaq) -- (dut);
       \draw [dashed, thick,orange] (tlu) -| ($(scint2)+(-.2,0)$) |- (dutdaq);
+      \draw [dashed, thick,orange] (nidaq) -| ($(scint2)+(-.2,0)$);
 
       %hardware-producer connections
-      \draw[-latex,thick,gold]    (dutdaq) -- (dutproducer) node
-            [sloped,below,pos=0.5,gold] {\bf marked};
+      \draw[latex-latex,thick,deepgreen]  (nidaq)  -- (niproducer);
+      \draw[-latex,thick,gold]    (dutdaq) -- (dutproducer);
       \draw[latex-latex,thick,orange] (tlu)    -- (tluproducer);
       %datacollector connections
+      \draw[-latex,thick,blue] (niproducer)  -- (datacollector1);
       \draw[-latex,thick,blue] (dutproducer) -- (datacollector2);
       \draw[-latex,thick,blue] (tluproducer) -- (datacollector1);
-      \draw[-latex,thick,blue] (datacollector1.east) -- ++ (0.65,0) |-
+      %reader
+      \draw[-latex,thick,blue] (reader1.east) -- ++ (0.65,0) |-
       (runmonitor) node [sloped,above,pos=0.25,blue] {send selected data packets};
-      \draw[-latex,thick,blue] (datacollector2.east) -- ++ (0.5,0) |- (runmonitor);
+      \draw[-latex,thick,blue] (reader2.east) -- ++ (0.5,0) |- (runmonitor);
       % run monitor connections
-      \draw[-latex,thick,red](runmonitor.south east) -- ++ (3.25,0) |-
-      (tluproducer.north east)
-      node [sloped,above,pos=0.25,red,rotate=180]{request \#1 via TLU
-        signal};
       \draw[-latex,thick,red](runmonitor.south east) -- ++ (2.65,0) |-
-      (datacollector1.north east)
-      node [sloped,above,pos=0.34,red,rotate=180]{request \#2 via
-        software call};
+      (reader1.north east)
+      node [sloped,above,pos=0.34,red,rotate=180]{request};
       \draw[-latex,thick,red](runmonitor.south east) -- ++ (2.65,0) |-
-      (datacollector2.north east);
+      (reader2.north east);
 
       \draw[-latex,thick,blue] (runmonitor.west) -- (analysis);
 
 
       % harddisk
       \node (harddisk1) at ($(datacollector1.south) +(1.7,-.35)$) {\includegraphics[width=0.75cm]{drive-harddisk}};
-      \draw [latex-,thick,blue] (datacollector1.south)-- (harddisk1) node [sloped,below,pos=0.4,blue] {read};
+      \draw [-latex,thick,blue] (datacollector1.south)-- (harddisk1) node [sloped,below,pos=0.4,blue] {write};
+      \draw [latex-,thick,blue] (reader1.south)-- (harddisk1) node [sloped,below,pos=0.4,blue] {read};
       \node (harddisk2) at ($(datacollector2.south) +(1.7,-.35)$) {\includegraphics[width=0.75cm]{drive-harddisk}};
+      \draw [-latex,thick,blue] (datacollector2.south)-- (harddisk2) node [sloped,below,pos=0.4,blue] {write};
+      \draw [latex-,thick,blue] (reader2.south)-- (harddisk2) node [sloped,below,pos=0.4,blue] {read};
 
       %BACKGROUND
       \begin{pgfonlayer}{background}
