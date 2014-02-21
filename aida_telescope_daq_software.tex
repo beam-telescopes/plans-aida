@@ -257,9 +257,13 @@ possible using the trigger and clock information from the TLU:
 
 This task will be performed by a central \emph{run monitor} processor
 while the retrieval of the packets will be performed by \emph{reader}
-processors. These collect packets (or optionally their meta-data only) by
-accessing the files written by the data collectors and retrieving
-specific trigger and clock ranges.
+processors as shown in figure~\ref{fig:schematicreading}. These
+collect packets (or optionally their meta-data only) by accessing the
+files written by the data collectors and retrieving specific trigger
+and clock ranges. The run monitor can write these packets to disk,
+creating a sub-set of the available data corresponding to specific
+triggers that would be suited for further processing by an online
+monitor or an offline analysis. 
 
 To be decided/implications/notes:
 \begin{itemize}
@@ -274,10 +278,10 @@ To be decided/implications/notes:
   additional device-specific information (e.g. clock speed) but would
   probably require TLU information to be present inside each data
   collector's file.
-\item the reader processor will use file-system access to the data; a
-  index file containing all the packets' meta information and seek
-  position for the main binary file could speed up the time needed to
-  retrieve the desired packet.
+\item the reader processor will use file-system access to the data
+  (either on cache or on RAM disc); an index file containing all the
+  packets' meta information and seek position for the main binary file
+  could speed up the time needed to retrieve the desired packet.
 \item if a device's DAQ does not include fully-qualified identifiers
   for the packet meta-data to associate it to a trigger (i.e. TLU
   trigger number and/or TLU clock-based timestamp or range), the
@@ -302,57 +306,46 @@ To be decided/implications/notes:
 
 This run-monitor triggered data retrieval mechanism can be modified to
 include TLU-issued markers that are signaled to all connected DAQ
-systems, allowing hardware-aided pre-selection of packets: As shown in
-figure~\ref{fig:schematicreading}, this can be performed in two
-steps. First, a hardware signal from the TLU to all DAQs is issued on
-request to allow very fast devices to cache packets for later
-retrieval by the \emph{run monitor}. This TLU signal is timestamped
-and included in the next packet to mark it. Then, the \emph{reader
-  processors} are requested to send all packets containing such TLU
-marker timestamp. If a DAQ does not include a timestamp for this
-signal in its packets, either the run monitor or the \emph{reader}
-determines the device's packet(s) that would correspond to the
-time/trigger range containing the marker signal and retrieves it.
-
-Implications:
-\begin{itemize}
-\item this system requires information from the TLU producer to be
-  available if the device's DAQ itself does not react to the marker signal
-\end{itemize}
+systems, allowing hardware-aided pre-selection of packets: this can be
+performed in two steps. First, a hardware signal from the TLU to all
+DAQs is issued on request to allow very fast devices to cache packets
+(e.g. into a separate data collector) for later retrieval by the
+\emph{run monitor}. This TLU signal is timestamped and included in the
+next packet to mark it. Then, the \emph{reader processors} are
+requested to send all packets containing such TLU marker timestamp. If
+a DAQ does not include a timestamp for this signal in its packets,
+either the run monitor or the \emph{reader} determines the device's
+packet(s) that would correspond to the time/trigger range containing
+the marker signal and retrieves it.
 
 
 At first, only the latter mechanism (purely run-monitor-driven request
-for specific trigger number or clock range) should be implemented.
+for specific trigger number or clock range) will be implemented.
 
 \begin{figure}[htbp]
   \centering
   \include{schematic_reading}
   \caption{Schematic layout of the proposed collection mechanism for
     reading selected data packets corresponding to specific trigger
-    timestamp/number: (1) the run monitor requests via the TLU
-    producer a marker signal from the TLU which is sent to all
-    connected DAQs; these add an additional marker meta data entry in
-    their next packet and the data collector caches these. (2) all
-    data collectors are requested to send the packets to the run
-    monitor, either from cache or re-read from storage.}
+    timestamp/number: (1) the run monitor requests meta-data from all
+    readers and determines; (2) the run monitor makes consistency
+    checks on the meta data and requests data packets corresponding to
+    a set of triggers. (3) the full data packets are read by the
+    readers either from disk or cache.}
 \label{fig:schematicreading}
 \end{figure}
 
-Implications:
-\begin{itemize}
-\item It would allow to remove the current event and trigger
-  counting from \emph{run control} or setup \emph{run control} as full
-  run monitor.
-\end{itemize}
-
 To be decided/discussed:
 \begin{itemize}
-\item How to treat DAQs running without TLU-synchronization?
+\item Should the reader and run monitor be implemented in the EUDAQ
+  framwork or work as separate tools?
+\item How could the algorithm for identifying correct data packets
+  from meta data work in the various use cases and levels of TLU integration?
+\item Specifically, how to treat DAQs running without TLU-synchronization?
 \item How does the \emph{run monitor} access the information collected
   by the TLU producer?
-\item How should the fallback from TLU-signaled data request to
-  request via trigger number/timestamp be handled?
 \end{itemize}
+
 
 \subsection{Online monitoring}
 \label{sec:online-monitoring}
@@ -433,7 +426,7 @@ Requirements/changes needed/to be discussed:
 \item produce monitoring/correlation histograms useful during data taking
 \item provide geometry information up front (e.g. within EUDAQ)
 \item optimize the analysis chain to work out-of-the-box in as many
-  cases as possible
+  cases as possible (e.g. automatic iterative alignment)
 \end{itemize}
 
 \newpage
