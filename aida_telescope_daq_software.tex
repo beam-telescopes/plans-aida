@@ -328,10 +328,11 @@ for specific trigger number or clock range) will be implemented.
   \caption{Schematic layout of the proposed collection mechanism for
     reading selected data packets corresponding to specific trigger
     timestamp/number: (1) the run monitor requests meta-data from all
-    readers and determines; (2) the run monitor makes consistency
+    readers; (2) the run monitor makes consistency
     checks on the meta data and requests data packets corresponding to
-    a set of triggers. (3) the full data packets are read by the
-    readers either from disk or cache.}
+    a set of triggers/time stamps; (3) the full data packets are read by the
+    readers either from disk or cache and sent to the run monitor,
+    where they can be further processed e.g. by an offline analysis framework.}
 \label{fig:schematicreading}
 \end{figure}
 
