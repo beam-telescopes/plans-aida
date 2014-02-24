@@ -79,19 +79,21 @@
 \section{Introduction}
 The current version of EUDAQ (v1.X) offers a flexible and proven
 framework for data taking with multiple devices in a test
-beam. However, it is based on the concept of one-trigger-per-frame
-delivered by the Mimosa and it suffers from limitations when going to
-high trigger rates. Some fundamental changes going toward a v2.0 (or
-AIDAQ) are needed.
+beam. However, it is based on the concept of
+one-trigger-per-integration-cycle\footnote{The duration of this
+  integration cycle is determined by the longest-integrating device.}
+and it suffers from data-rate limitations when going to high trigger
+rates. Some fundamental changes going toward a v2.0 (or AIDAQ) are
+needed.
 
 To keep the amount of work needed small (for us and others) and to allow the project to
 be completed in small chunks (i.e. by different people), the changes
 should generally/where possible be kept
 \begin{itemize}
 \item backward compatible\footnote{Backward compatible meaning no
-    changes to the \emph{producer's} source code needed; if any
-    changes are needed, these need to be well motivated, minor and
-    thoroughly documented. Binary compatibility with old producers or
+    changes to the \emph{producer's} source code on user's side needed; if any
+    changes are required, these need to be well motivated, kept minor and
+    have to be clearly documented. Binary compatibility with old producers or
     data files on the other hand is not being foreseen.} to existing DUT integrations,
 \item minimally invasive, and
 \item modular.
