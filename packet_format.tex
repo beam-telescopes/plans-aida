@@ -69,14 +69,14 @@
 % descriptions
 \node [desc] (marker) {Start marker};
 \node [desc] (number) {Packet number};
-\node [desc] (type) {Packet type};
+\node [desc] (id) {Packet producer ID};
 % sizes
 \chainin (marker); % Start right of Level 5
-\node [size, right= of marker] (msize) {to be decided};
-\node [size] (nsize) {60-bit};
-\node [size] (tsize) {4-bit};
+\node [size, right= of marker] (msize) {64-bit};
+\node [size] (nsize) {64-bit};
+\node [size] (tsize) {64-bit (or 32|32 bit)};
 \draw[decorate,decoration={brace,mirror,raise=6pt,amplitude=10pt}, thick]
-    (marker.north west)--(type.south west) node [midway] (hbrace){}; 
+    (marker.north west)--(id.south west) node [midway] (hbrace){}; 
 \node[left=.5cm of hbrace] (header) {Packet Header};
 
 
@@ -86,7 +86,7 @@
 \node [listblock] (mentry1) {TLU \nodepart{second} TYPE \nodepart{third} COUNT};
 \node [empty] (lmore) {\vdots};
 % sizes
-\node [size] {to be decided};
+\node [size] {64-bit};
 \node [size] {$N\times$ 64-bit (1|4|59 bit)};
 \node [size] {\phantom{\vdots}};
 \draw[decorate,decoration={brace,mirror,raise=6pt,amplitude=10pt}, thick]
@@ -100,7 +100,7 @@
 \node [data] (dentry1) {DATA};
 \node [empty] (dmore) {\vdots};
 % sizes
-\node [size] {to be decided};
+\node [size] {64-bit};
 \node [size] {$L\times$ 64-bit};
 \node [size] {\phantom{\vdots}};
 \draw[decorate,decoration={brace,mirror,raise=6pt,amplitude=10pt}, thick]

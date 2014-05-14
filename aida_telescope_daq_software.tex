@@ -120,8 +120,8 @@ current concept of a synchronous event number across devices.
   \centering
   \include{packet_format}
   \caption{The new data format: packets structured into list of meta
-    data (timestamps/counter values) with type ID and a corresponding
-    block of data.}
+    data (timestamps/counter values) which describes trigger and/or
+    time ranges and the corresponding block of data.}
 \label{fig:packetformat}
 \end{figure}
 
@@ -142,9 +142,11 @@ request via a pull mechanism (see section~\ref{sec:integrity}).
   \begin{itemize}
   \item a start marker
   \item the \emph{packet number} is set by each producer for
-    every data block send to the data collector (starting at 1)
-  \item the packet type is a flag that indicates which
-    detector/producer generated the data or which decoder to use
+    every data block send to the data collector (starting at 1 for
+    every run)
+  \item the producer ID field describes the 
+    detector/producer from which the data originate and which decoder
+    to use; possibly to be divided into major and sub fields.
   \end{itemize}
 \item the \textbf{meta data} to each packet consists of a length field and a
   list of counter entries with three fields: 
@@ -187,9 +189,12 @@ Remaining questions/issues/details yet to be decided:
   existing producers?
 \item What meta data types (\emph{TYPE} field) need to be supported?
   For current list of suggestions, see~\ref{app:typeid}.
-\item What/how many detector/packet types (type field in packet
-  header) need to be supported? For a list of suggestions,
-  see~\ref{app:packettype}. Are 4-bit enough to identify all required types?
+\item What/how many detector/packet types (producer ID field in packet
+  header) need to be supported and where should they be defined? For a list of suggestions,
+  see~\ref{app:packettype}. Should the field be separated into two
+  fields (e.g. each with 32-bit width), one ``major'' and one
+  ``sub-id'' field? Should the values be fixed and centrally defined
+  or should they be freely assignable by each producer?
 \end{itemize}
 
 
@@ -437,6 +442,7 @@ Requirements/changes needed/to be discussed:
 
 \section{Packet header: \emph{Packet type} field values}
 \label{app:packettype}
+Values to be supported for the major field:
 \begin{enumerate}
 \item TLU
 \item Mimosa26
@@ -464,6 +470,8 @@ Requirements/changes needed/to be discussed:
 \item end of shutter timestamp (arbitrary clock)
 \item begin of this packet data recording timestamp (arbitrary clock)
 \item end of this packet data recording timestamp (arbitrary clock)
+\item run number
+\item sequence number of data file (RESERVED FOR META DATA INDEX FILE)
 \item $\ldots$?
 \end{enumerate}
 
