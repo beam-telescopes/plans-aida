@@ -9,15 +9,19 @@
 \usepackage[pdftex]{graphicx}				% Enable pdflatex
 \usepackage{url}
 
+\usepackage[hyperref=true, sorting=none]{biblatex}
+\bibliography{references}
+
 %%% Custom sectioning (sectsty package)
 \usepackage{sectsty}					% Custom sectioning (see below)
 \allsectionsfont{\centering \normalfont\scshape}	% Change font of al section commands
 
+%%% Nice tables
+\usepackage{booktabs}
+
 %%% Packages for drawings
 \usepackage{tikz}
 \usetikzlibrary{chains,positioning,fit,decorations.pathreplacing,shapes,calc,shadows,fadings}
-
-
 
 %%% path to images
 \graphicspath{ {images/} }
@@ -45,7 +49,7 @@
 %%% Equation and float numbering
 \numberwithin{equation}{section}		% Equationnumbering: section.eq#
 \numberwithin{figure}{section}			% Figurenumbering: section.fig#
-\numberwithin{table}{section}				% Tablenumbering: section.tab#
+\numberwithin{table}{section}           	% Tablenumbering: section.tab#
 
 %%% List spacing
 \usepackage{enumitem}
@@ -188,7 +192,7 @@ Remaining questions/issues/details yet to be decided:
   consistency without having to make significant code changes in
   existing producers?
 \item What meta data types (\emph{TYPE} field) need to be supported?
-  For current list of suggestions, see~\ref{app:typeid}.
+  For current list of suggestions, see table~\ref{tab:typefield}.
 \item What/how many detector/packet types (producer ID field in packet
   header) need to be supported and where should they be defined? For a list of suggestions,
   see~\ref{app:packettype}. Should the field be separated into two
@@ -196,6 +200,32 @@ Remaining questions/issues/details yet to be decided:
   ``sub-id'' field? Should the values be fixed and centrally defined
   or should they be freely assignable by each producer?
 \end{itemize}
+
+  \begin{table}[htbp]
+    \centering
+    \begin{tabular}{cl}
+    \toprule
+    \textbf{TYPE} & \textbf{description} \\
+    \midrule
+    0000 &  internal trigger -- \emph{reserved for internal TLU usuage}\\
+    0001 &  external trigger\\
+    0010 &  shutter falling \\
+    0011 &  shutter rising  \\
+    0100 &  edge falling    \\
+    0101 &  edge rising     \\
+    0110 &  spill off       \\
+    0111 &  spill on        \\
+    1011 & start/end of packet data recording \\
+    1111 & first/last trigger \emph{number} contained in packet \\
+    \bottomrule
+  \end{tabular}
+  \caption{Codification of the meta data \emph{TYPE} field in the new
+    packet format based on TLU signals\cite{tlu2014}. The specific
+    value defines how the \emph{COUNT} field of the meta data entry is
+    interpreted. An additional \emph{TLU} bit indicates whether or not the counter value
+    is based on the central clock provided by the AIDA TLU.}
+\label{tab:typefield}
+\end{table}
 
 
 \subsection{Spreading the load: multiple data collectors}
@@ -453,29 +483,6 @@ Values to be supported for the major field:
 \item $\ldots$?
 \end{enumerate}
 
-\section{Packet meta data list: \emph{TYPE} field values}
-\label{app:typeid}
-\begin{enumerate}
-\item FIRST trigger number contained in packet
-\item LAST trigger number contained in packet
-\item trigger timestamp (TLU clock cycle counter)
-\item sync signal counter
-\item sync signal timestamp (TLU clock cycle counter)
-\item begin of shutter timestamp (TLU clock cycle counter)
-\item end of shutter timestamp (TLU clock cycle counter)
-\item begin of this packet data recording timestamp (TLU clock cycle counter)
-\item end of this packet data recording timestamp (TLU clock cycle counter)
-\item trigger timestamp (arbitrary clock)
-\item sync signal timestamp (arbitrary clock)
-\item begin of shutter timestamp (arbitrary clock)
-\item end of shutter timestamp (arbitrary clock)
-\item begin of this packet data recording timestamp (arbitrary clock)
-\item end of this packet data recording timestamp (arbitrary clock)
-\item run number
-\item sequence number of data file (RESERVED FOR META DATA INDEX FILE)
-\item $\ldots$?
-\end{enumerate}
-
 \section{Mimosa Readout}
 
 \subsection{Firmware}
@@ -502,6 +509,8 @@ Values to be supported for the major field:
 \item record position of pivot pixel at time of trigger \emph{or} use
   global TLU clock and time-stamp beginning/end of frames
 \end{itemize}
+
+\printbibliography
 
 
 %%% End document
