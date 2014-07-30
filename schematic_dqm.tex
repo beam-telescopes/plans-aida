@@ -5,42 +5,44 @@
         top color=white,bottom color=black!20,inner sep=.3em},
       line/.style ={draw, thick, -latex,shorten >=2pt},
       cloud/.style ={draw=red, thick, ellipse,fill=red!20,
-        minimum height=2.5em},
+        minimum height=2.em},
       block/.style={rectangle, draw=aidablue, thick, fill=aidablue!20,
         align=center, rounded corners,
-        minimum height=2.5em, inner sep=.3em},
+        minimum height=2.em, inner sep=.3em},
       minorcloud/.style ={draw=orange, thick, ellipse,fill=orange!20,
-        minimum height=2.5em},     
+        minimum height=2.em},     
       bluecloud/.style ={draw=blue, thick, ellipse,fill=blue!20,
         minimum height=2em},
       blueblock/.style={rectangle, draw=blue, thick, fill=blue!20,
         align=center, rounded corners,
-        minimum height=2.5em, inner sep=.3em}
+        minimum height=2.em, inner sep=.3em}
       ] 
 
       \node (center) {};
       \node[cloud, above=2em of center] (runctl) {\smaller RunControl};
-      \node[block, left=1.5em of center] (producer1) {\smaller Producer \#1};
-      \node[block, right=1.5em of center] (producer2) {\smaller Producer \#2};
+      \node[block, left=1.15em of center] (producer1) {\smaller Producer \#1};
+      \node[block, right=1.15em of center] (producer2) {\smaller Producer \#2};
 
-      \node[blueblock, below=1.5em of producer1] (dc1) {\smaller DataCollector \#1};
-      \node[blueblock, below=1.5em of producer2] (dc2) {\smaller DataCollector \#2};
+      \node[blueblock, below=1.15em of producer1] (dc1) {\smaller DataCollector \#1};
+      \node[blueblock, below=1.15em of producer2] (dc2) {\smaller DataCollector \#2};
+
+      \node[blueblock, below=1.25em of dc1.east,anchor=north east] (r1) {\smaller Reader \#1};
+      \node[blueblock, below=1.25em of dc2.west,anchor=north west] (r2) {\smaller Reader \#2};
 
       \node (disk1) at ($(dc1.south west)+(.15,-.45)$) {\includegraphics[width=2em]{images/drive-harddisk}};
       \node (disk2) at ($(dc2.south east)+(-.15,-.45)$) {\includegraphics[width=2em]{images/drive-harddisk}};
 
-      \node[terminal, below=10em of center] (merger) {\smaller Online
-        DQM \& Merger};
+      \node[cloud, below=10em of center] (merger) {\smaller Online DQM \& Merger};
 
       \node[terminal, below=1em of merger,xshift=-4em] (monitor) {\smaller Online Monitor};
 
-      \node (legend) at ($(monitor)+(11em,4.5em)$) {};
+      \node (legend) at ($(monitor)+(12.5em,2.1em)$) {};
       \draw [-latex,red, dotted,thick] (legend.center) -- ++ (.5,0) node[anchor=west,black](text1) {\smaller \smaller command};
       \draw [-latex,blue] ($(legend)+(0,-0.9em)$) -- ++ (.5,0) node[anchor=west, black](text2) {\smaller \smaller data+meta data};
       \draw [-latex,blue, dashed] ($(legend)+(0,-1.8em)$) -- ++ (.5,0) node[anchor=west, black](text3) {\smaller \smaller partial data};
       \draw [-latex,orange] ($(legend)+(0,-2.7em)$) -- ++ (.5,0) node[anchor=west,black] (text4){\smaller \smaller meta data only};
       \begin{pgfonlayer}{background}
-        \node [fill=white,inner sep=.2em, draw=black!20,rounded corners,fit=(legend)(text1.north east) (text2.east) (text3.east) (text4.south east)] {};
+        \node [fill=white,inner sep=.015em, draw=black!20,rounded corners,fit=(legend)(text1.north east) (text2.east) (text3.east) (text4.south east)] {};
       \end{pgfonlayer}
 
 
@@ -52,24 +54,27 @@
       \draw[-latex,thick,blue] (dc1)  -- (disk1.center);
       \draw[-latex,thick,blue] (dc2)  -- (disk2.center);
 
-      \draw [-latex,orange, thick, transform canvas={xshift=-1.75em}] (dc1) -- (merger) 
-      node [sloped,below,pos=0.4,orange] {\smaller \smaller meta data}
-      node[pos=.9,xshift=-.25cm,circle, draw,minimum size=.35cm] {\smaller 1};
-      \draw [latex-,red,dotted, thick, transform canvas={xshift=0em}] (dc1) -- (merger) 
-      node [sloped,below,pos=0.4,red] {\smaller \smaller request}
-      node[pos=.9,xshift=-.25cm,circle,solid, draw,minimum size=.35cm] {\smaller 2};
-      \draw [-latex,blue, dashed, thick, transform canvas={xshift=1.75em}] (dc1) -- (merger) 
-      node [sloped,below,pos=0.4,blue] {\smaller \smaller select data}
-      node[pos=.9,xshift=-.25cm,circle, solid, draw,minimum size=.35cm] {\smaller 3};
+      \draw[latex-,thick,blue] (r1)  -- (disk1.center);
+      \draw[latex-,thick,blue] (r2)  -- (disk2.center);
 
-      \draw[-latex,thick,orange,transform canvas={xshift=1.5em}] (dc2)  -- (merger);
-      \draw[latex-,thick,red,dotted,transform canvas={xshift=1.75em}] (dc2)  -- (merger);
-      \draw[-latex,thick,blue,dashed,transform canvas={xshift=2.em}] (dc2)  -- (merger);
+      \draw [-latex,orange, thick, transform canvas={xshift=-1.75em}] (r1) -- (merger) 
+      node [sloped,below,pos=0.4,orange] {\smaller \smaller meta data}
+      node[pos=.9,xshift=-.25cm,minimum size=.35cm] {\smaller 1};
+      \draw [latex-,red,dotted, thick, transform canvas={xshift=0em}] (r1) -- (merger) 
+      node [sloped,below,pos=0.4,red] {\smaller \smaller request}
+      node[pos=.9,xshift=-.25cm,minimum size=.35cm] {\smaller 2};
+      \draw [-latex,blue, dashed, thick, transform canvas={xshift=1.75em}] (r1) -- (merger) 
+      node [sloped,below,pos=0.35,blue] {\smaller \smaller select data}
+      node[pos=.9,xshift=-.25cm,minimum size=.35cm] {\smaller 3};
+
+      \draw[-latex,thick,orange,transform canvas={xshift=1.5em}] (r2)  -- (merger);
+      \draw[latex-,thick,red,dotted,transform canvas={xshift=1.75em}] (r2)  -- (merger);
+      \draw[-latex,thick,blue,dashed,transform canvas={xshift=2.em}] (r2)  -- (merger);
 
       \draw[-latex,thick,blue,dashed] (merger)  -- (monitor);
 
   \end{tikzpicture}
 
 %%% Local Variables:
-%%% TeX-master: "proceedings"
+%%% TeX-master: "hperrey_eudaq_2-0"
 %%% End:
