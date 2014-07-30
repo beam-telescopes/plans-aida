@@ -106,6 +106,121 @@
 
 \maketitle
 \section{Introduction}
+Beam tests of future tracking devices are crucial to determine their
+characteristics under realistic operating conditions.  By determining
+the track of a charged particle in a test beam to high precision using
+a beam telescope, one can perform detailed studies of newly developed
+detectors. 
+
+  Originally built at DESY within the EUDET JRA1 project for detector
+  R\&D toward the International Linear Colider (ILC), the EUDET beam
+  telescope \cite{beamtelescopesportal} was designed as an easy-to-use system with
+  well-defined interfaces allowing test beam studies on a short time
+  scale.
+
+  Since the first EUDET telescope has been used in beam tests
+  in 2007, it has become the primary beam tool for many groups,
+  largely due to its precise pointing resolution of $\sim
+  \SI{2}{\micro\meter}$, reliable operation and DAQ integration
+  capabilities.
+
+  For the telescope to deliver this excellent performance, two
+  software packages play a central role:
+
+  \begin{itemize}
+  \item \eudaq{} \cite{eudaqsite}, a multi-platform data acquisition
+    (DAQ) system that allows
+    easy integration of the device-under-test, and
+  \item \eutel{} \cite{eutelsite}, a library that provides tools for the spatial
+    reconstruction of particle tracks and the final data analysis.
+  \end{itemize}
+
+  Based on the EUDET telescope, a next generation telescope is being
+  developed within work package 9.3 of the European AIDA project to
+  better fulfill the evolving requirements of the user community. It
+  will provide more than two orders of magnitude higher trigger rates
+  of up to $1\unit{MHz}$, {precise time-stamping} in the
+  sub-nanosecond range, and {large-area sensor planes} of
+  $4\times4\unit{cm^2}$. This is made possible by a new trigger logic
+  unit (TLU) with both faster discriminators and a simplified,
+  shared-clock interface to the connected devices and by replacing one
+  of the two telescope arms consisting of a triplet of MIMOSA26
+  sensors with three MIMOSA28 quad-planes. Both of these hardware
+  developments are described in detail in \cite{tlu2014} and
+  \cite{tlu2014}, respectively.
+
+  To fully exploit the new hardware capabilities, both the DAQ
+  framework and the analysis framework have to be extended to be able
+  to deal with a significant increase in data rates, to support time
+  stamping and multiple triggers per device readout, and to allow for
+  a more challenging (offline) alignment of sensor planes composed of
+  several individual devices.
+
+  An ongoing effort is made to incorporate these features and which
+  are foreseen to be released as versions EUDAQ~2.0 and
+  EUTelescope~1.0 later this year.
+
+\section{\eudaq{} 2.0 -- A Flexible High-Rate Capable DAQ Framework}
+
+\eudaq{} is a generic DAQ framework that has been successfully used in
+testbeams with the EUDET-family of beam telescopes since 2007.  It allows the
+easy (but optional) integration of the device-under-test and its DAQ
+into the telescope data stream and gives the user a central interface
+to control and monitor the operation of the full system. EUDAQ
+features a very modular design in which individual components
+communicate via TCP/IP and can run on different networked machines.
+
+The central authority is called \emph{RunControl}. It provides the
+user with a choice of either a graphical or console-based interface
+with status information on the current operation and allows to
+configure, start or stop the data taking. The actual device-hardware
+interaction with the telescope or the device-under-test is performed
+by independent \emph{Producers}. Well-documented examples are provided
+to make the integration as easy and straightforward as possible. All
+Producers send their raw or already-decoded data to a
+\emph{DataCollector} which stores it to disk.
+
+    \begin{figure}[hbt]\centering
+      \include{schematic_eudaq2_mod}
+      \caption{A schematic overview of the components of EUDAQ and the
+        foreseen data flow for version~2.0. Shown is the communication between
+        components when writing data from multiple data sources
+        (devices/Producers) to local data sinks (DataCollectors) and
+        monitoring the system online based on a partial sub-set of the
+        stored data merged by a central data quality monitoring
+        process (Online DQM \& Merger).}
+  \label{fig:mdc}
+\end{figure}
+
+
+EUDAQ will also be the DAQ framework of choice for the AIDA
+telescope. A new extended data format will allow for storage of additional
+meta data such as time stamps and multiple triggers per device readout
+to make use of the capabilities of the newly developed AIDA TLU.
+
+In order to cope with the high data rates expected from the
+increased trigger rates and the large-area sensor planes, EUDAQ~2.0
+will allow to run multiple DataCollectors simultaneously as illustrated in
+figure~\ref{fig:mdc}. Each DataCollector can be assigned to a single
+Producer and can run locally on the same physical machine as the
+Producer itself. This makes the setup more flexible and 
+avoids bandwidth bottlenecks such as slow network connections.
+
+The additional meta data available will make more thorough consistency
+checks and online verification possible: as devices obtain their clock
+directly from the TLU, synchronization loss and missed triggers can be
+reliably detected online. For this purpose, the meta data only will be
+collected from each DataCollector and verified by a central data quality monitoring
+process. Additionally, the data can be (partially) merged online
+by requesting packets containing specific trigger ranges -- this
+allows to generate e.g. correlation plots online or even run the data
+analysis on a sub-set of the data while the recording is ongoing.
+
+Even with these fundamental changes to the data-handling concept of EUDAQ, a lot of
+effort has been invested to make the modifications backward-compatible
+in order to preserve existing device integrations by the users.
+
+
 The current release branch of EUDAQ (v1.X) offers a flexible and proven
 framework for data taking with multiple devices in a test
 beam. However, it is based on the concept of
