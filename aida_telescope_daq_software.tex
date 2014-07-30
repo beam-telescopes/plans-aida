@@ -185,94 +185,37 @@ system. EUDAQ features a very modular design in which individual
 components communicate via TCP/IP and can run on different networked
 machines.
 
+\begin{figure}[htbp]
+  \centering
+  \include{schematic_eudaq1}
+  \caption{Schematic layout of the components of the EUDAQ framework
+    and the data flow from the hardware DAQ systems through their
+    \emph{Producers} to the \emph{DataCollector} which finally stores the data
+    to disk.
+  }
+\label{fig:layout_eudaq1}
+\end{figure}
+
 The central authority is called \emph{RunControl}. It provides the
 user with a choice of either a graphical or console-based interface
 with status information on the current operation and allows to
 configure, start or stop the data taking. The actual device-hardware
 interaction with the telescope or the device-under-test is performed
-by independent \emph{Producers}. Well-documented examples are provided
+by independent \emph{Producers} as illustrated in
+figure~\ref{fig:layout_eudaq1}. Well-documented examples are provided
 to make the integration as easy and straightforward as possible. All
 Producers send their raw or already-decoded data to a
 \emph{DataCollector} which stores it to disk.
 
-    \begin{figure}[hbt]\centering
-      \include{schematic_eudaq2_mod}
-      \caption{A schematic overview of the components of EUDAQ and the
-        foreseen data flow for version~2.0. Shown is the communication between
-        components when writing data from multiple data sources
-        (devices/Producers) to local data sinks (DataCollectors) and
-        monitoring the system online based on a partial sub-set of the
-        stored data merged by a central data quality monitoring
-        process (Online DQM \& Merger).}
-  \label{fig:mdc}
-\end{figure}
-
-
 EUDAQ will also be the DAQ framework of choice for the AIDA
-telescope. A new extended data format will allow for storage of additional
-meta data such as time stamps and multiple triggers per device readout
-to make use of the capabilities of the newly developed AIDA TLU.
-
-In order to cope with the high data rates expected from the
-increased trigger rates and the large-area sensor planes, EUDAQ~2.0
-will allow to run multiple DataCollectors simultaneously as illustrated in
-figure~\ref{fig:mdc}. Each DataCollector can be assigned to a single
-Producer and can run locally on the same physical machine as the
-Producer itself. This makes the setup more flexible and 
-avoids bandwidth bottlenecks such as slow network connections.
-
-The additional meta data available will make more thorough consistency
-checks and online verification possible: as devices obtain their clock
-directly from the TLU, synchronization loss and missed triggers can be
-reliably detected online. For this purpose, the meta data only will be
-collected from each DataCollector and verified by a central data quality monitoring
-process. Additionally, the data can be (partially) merged online
-by requesting packets containing specific trigger ranges -- this
-allows to generate e.g. correlation plots online or even run the data
-analysis on a sub-set of the data while the recording is ongoing.
-
-Even with these fundamental changes to the data-handling concept of EUDAQ, a lot of
-effort has been invested to make the modifications backward-compatible
-in order to preserve existing device integrations by the users.
+telescope. However, in order to make use of the capabilities of the
+newly developed AIDA TLU and to support the high data rates expected
+from large-area telescope planes and the increased trigger rates,
+modifications to both the underlying data format and the data flow are
+necessary.
 
 
-The current release branch of EUDAQ (v1.X) offers a flexible and proven
-framework for data taking with multiple devices in a test
-beam. However, it is based on the concept of
-one-trigger-per-integration-cycle\footnote{The duration of this
-  integration cycle is determined by the longest-integrating device.}
-and it suffers from data-rate limitations when going to high trigger
-rates. Some fundamental changes going toward a v2.0 (or AIDAQ) are
-needed.
-
-To keep the amount of work needed small (for us and others) and to allow the project to
-be completed in small chunks (i.e. by different people), the changes
-should generally/where possible be kept
-\begin{itemize}
-\item backward compatible\footnote{Backward compatible meaning no
-    changes to the \emph{producer's} source code on user's side needed; if any
-    changes are required, these need to be well motivated, kept minor and
-    have to be clearly documented. Binary compatibility with old producers or
-    data files on the other hand is not being foreseen.} to existing DUT integrations,
-\item minimally invasive, and
-\item modular.
-\end{itemize}
-
-\section{DAQ}
-\label{sec:daq}
-High trigger rates will require the ability to store large amounts of
-data in short time. Therefore, potentially slow links such as Ethernet
-should be avoided. Allowing each device's producer to connect to its
-own (local) data collector makes it possible to spread the load onto
-different machines.
-
-Furthermore, one-trigger-per-particle operation requires to take
-different device's data delivery concepts and speeds into
-account. For example, devices integrating over longer periods of time
-will send data blocks that cover a range of triggers. This breaks the
-current concept of a synchronous event number across devices.
-
-\subsection{New data format: \emph{packets} instead of \emph{events}}
+\subsection{New EUDAQ data format: \emph{Packets} instead of \emph{Events}}
 \label{sec:event}
 
 \begin{figure}[htbp]
@@ -284,77 +227,33 @@ current concept of a synchronous event number across devices.
 \label{fig:packetformat}
 \end{figure}
 
-Instead of sending the data in \emph{events} corresponding to single
-triggers, producers send the data in \emph{packets} which can cover
-arbitrary number of triggers and/or time ranges. This allows to
-integrate different DAQ concepts into EUDAQ, such as untriggered or
-data-driven devices.
+Instead of sending the data in \emph{Events} which correspond to a
+device readout matching a single trigger, a Producer in EUDAQ~2.0 can
+record and send the data in units ``natural'' to its operation (e.g. a set of
+frames for Mimosas) and store them in \emph{Packets}. These can not only cover
+arbitrary number of triggers and/or time ranges but also include
+additional meta information that allow to identify packets from
+different producers corresponding to the same trigger without having
+to decode the actual data. 
 
-The meta data format is designed to allow partial data merging on
-request via a pull mechanism (see section~\ref{sec:integrity}).
+The new Packet data format makes it significantly easier to 
+integrate a diverse range of DAQ concepts into EUDAQ, such as untriggered or
+data-driven devices. Furthermore, the meta data format is designed to allow partial data merging on
+the fly during data taking (as discussed in section~\ref{sec:integrity}).
 
-\begin{itemize}
-\item each device records and sends its data in arbitrary units ``natural'' to
-  its operation (e.g. a set of frames for Mimosas)
-
-\item the \textbf{packet header} consists of:
+As illustrated in figure~\ref{fig:packetformat}, the Packets consist
+of a packet header, a body containing meta data and the actual payload
+data, and a trailer. The \textbf{packet header} is composed of:
   \begin{itemize}
-  \item a start marker
+  \item a start marker,
   \item the \emph{packet number} is set by each producer for
     every data block send to the data collector (starting at 1 for
-    every run)
-  \item the producer ID field describes the 
+    every run), and 
+  \item a (unique) producer ID field that describes the
     detector/producer from which the data originate and which decoder
-    to use; possibly to be divided into major and sub fields.
+    to use; this field is divided into a major and a sub field, each
+    32-bit wide.
   \end{itemize}
-\item the \textbf{meta data} to each packet consists of a length field and a
-  list of counter entries with three fields: 
-  \begin{itemize}
-  \item \emph{TLU} bit to indicate whether or not this counter
-    corresponds to a TLU signal,
-  \item a \emph{TYPE} ID with a width of 4-bit which indicates the nature of the counter,
-    e.g. trigger number, clock count (i.e. timestamp) of a TLU-event, or
-    timestamp of begin/end of packet, and
-  \item the 59-bit wide counter value.
-  \end{itemize}
-  This allows to store as meta data:
-  \begin{itemize}
-  \item a list of trigger numbers,
-  \item a range in time during which the data was recorded, and/or
-  \item a list of trigger timestamps.
-  \end{itemize}
-\item \textbf{Trailer}: A 64-bit field for storing a \emph{check sum} (optional)
-  
-\end{itemize}
-
-Implications:
-\begin{itemize}
-\item as long as the old data format (one packet per trigger) is
-  still supported, all existing DUT producers should work as expected
-  after recompiling with the new underlying packet design.
-\item the packet number does not (necessarily) match the trigger number
-  and is not synchronous between devices. Specifically, the size and delivery rate
-  of events is different for each device.
-\item run control, data collectors and online monitors need to be adjusted so
-  support the new format.
-\end{itemize}
-
-Remaining questions/issues/details yet to be decided:
-\begin{itemize}
-\item Can the packet format be introduced without having to adjust any
-  code in the producers?
-\item Can the old ``event'' be renamed ``packet'' for clarity and
-  consistency without having to make significant code changes in
-  existing producers?
-\item What meta data types (\emph{TYPE} field) need to be supported?
-  For current list of suggestions, see table~\ref{tab:typefield}.
-\item What/how many detector/packet types (producer ID field in packet
-  header) need to be supported and where should they be defined? For a list of suggestions,
-  see~\ref{app:packettype}. Should the field be separated into two
-  fields (e.g. each with 32-bit width), one ``major'' and one
-  ``sub-id'' field? Should the values be fixed and centrally defined
-  or should they be freely assignable by each producer?
-\end{itemize}
 
   \begin{table}[htbp]
     \centering
@@ -382,245 +281,183 @@ Remaining questions/issues/details yet to be decided:
 \label{tab:typefield}
 \end{table}
 
+The \textbf{meta data} to each packet consists of a length field and a
+  list of counter entries with three fields: 
+  \begin{itemize}
+  \item \emph{TLU} bit to indicate whether or not this counter
+    corresponds to a TLU signal,
+  \item a \emph{TYPE} ID with a width of 4-bit which indicates the nature of the counter,
+    e.g. trigger number, clock count (i.e. timestamp) of a TLU-event, or
+    timestamp of begin/end of packet as detailed in table~\ref{tab:typefield}, and
+  \item the 59-bit wide counter value.
+  \end{itemize}
+  This allows to store as meta data:
+  \begin{itemize}
+  \item a list of trigger numbers,
+  \item a range in time during which the data was recorded, and/or
+  \item a list of trigger timestamps.
+  \end{itemize}
+
+And finally, the \textbf{trailer} is a 64-bit field designated for
+storing an (optional) \emph{check sum} over the full packet.
+
+In order to keep backward-compatibility, the former Events can be
+wrapped within the new Packet structure; this is foreseen to happen
+transparent to the Producer, so that existing device integrations do
+not need to be modified as long as the performance limitations of the
+old format and data taking are acceptable to the user.
+
 
 \subsection{Spreading the load: multiple data collectors}
 \label{sec:datacollectors}
-In order to avoid slow network links and to be able to store data on
-local machines, EUDAQ should support multiple data collectors,
-i.e. one per (device) processor as illustrated in figure~\ref{fig:schematiclayout}.
 
-\begin{figure}[htbp]
-  \centering
-  \include{schematic_multiple_dc}
-  \caption{Schematic layout of the proposed system with multiple data
-    collectors each writing onto a separate disk.}
-\label{fig:schematiclayout}
-\end{figure}
-
-Implications:
-\begin{itemize}
-\item Producers need to be associated with specific data collectors;
-  possible approaches:
-  \begin{itemize}
-  \item run control assigns producers to data
-    collectors; the appropriate data collector could be determined by the
-    configuration file or by identical processor and data collector names.
-  \item every producer is informed of every available data collector
-    by run control and chooses one according e.g. to its name; this
-    also allows for example the TLU producer to send its data to
-    \emph{every} data collector. \textbf{Note:} Need to verify whether
-    or not the producer-side modifications are limited to the
-    \texttt{Producer::OnData()} implementation or if changes to actual
-    producer's code would be necessary.
-  \end{itemize}
-\item online monitoring becomes more complicated as the data has to be
-  collected from several sources (discussed in
-  section~\ref{sec:online-monitoring}) but a single instance of the online monitor
-  could run on each data collector as before.
-\end{itemize}
-
-Issues/to be decided:
-\begin{itemize}
-\item by what method should producers be associated with specific data collectors?
-\item should the TLU producer's data be treated special in any way? It
-  could be sent to a separate data collector or even to all that are available.
-\item will one data collector per processor be required or do we have
-  a (central) default one as fallback?
-\item if one data collector has more than one producer assigned, how
-  is the storage of the received events managed? We could foresee an
-  index file containing a copy of the meta data and a seek position
-  for the main binary file, allowing faster access to specific packets.
-\end{itemize}
+In order to cope with the high data rates expected from the
+increased trigger rates and the large-area sensor planes, EUDAQ~2.0
+will allow to run multiple DataCollectors simultaneously\footnote{This
+feature is available as of EUDAQ version 1.3, as described in section
+3.2.3 of the manual\cite{eudaqv13}}. Each DataCollector can be assigned to a single
+Producer and can run locally on the same physical machine as the
+Producer itself. This makes the setup more flexible and 
+avoids bandwidth bottlenecks such as slow network connections.
 
 
-\subsection{Online data integrity checks and selected data packet reading}
+\subsection{Online data integrity checks, selected data packet
+  reading, and online monitoring}
 \label{sec:integrity}
-Depending on how the devices are integrated (i.e. whether they are running
-synchronous or not), quite thorough consistency checks are
-possible using the trigger and clock information from the TLU:
 
-\begin{itemize}
-\item correct trigger IDs with matching time stamp
-\item correct trigger IDs
-\item device active during all triggers (from time stamp ranges)
-\item total number of triggers (difficult during run time if the trigger
-  rates are constantly high, assessable with certainty only after run stop)
-\end{itemize}
-
-This task will be performed by a central \emph{run monitor} processor
-while the retrieval of the packets will be performed by \emph{reader}
-processors as shown in figure~\ref{fig:schematicreading}. These
-collect packets (or optionally their meta-data only) by accessing the
-files written by the data collectors and retrieving specific trigger
-and clock ranges. The run monitor can write these packets to disk,
-creating a sub-set of the available data corresponding to specific
-triggers that would be suited for further processing by an online
-monitor or an offline analysis. 
-
-To be decided/implications/notes:
-\begin{itemize}
-\item the run monitor could start by requesting meta-data only by the
-  readers; verifying consistency and finding common ranges suitable
-  e.g. for determining correlations it could then proceed to request
-  specific packets for each device from the readers (correlation logic
-  only inside run monitor).
-\item alternatively, the readers can find the packet(s) corresponding
-  to a TLU trigger or TLU clock range on this information alone; this
-  would allow e.g. the configuration of a specific reader with
-  additional device-specific information (e.g. clock speed) but would
-  probably require TLU information to be present inside each data
-  collector's file.
-\item the reader processor will use file-system access to the data
-  (either on cache or on RAM disc); an index file containing all the
-  packets' meta information and seek position for the main binary file
-  could speed up the time needed to retrieve the desired packet.
-\item if a device's DAQ does not include fully-qualified identifiers
-  for the packet meta-data to associate it to a trigger (i.e. TLU
-  trigger number and/or TLU clock-based timestamp or range), the
-  information of the TLU might be needed to determine the correct
-  packet(s); it could therefore be useful to have the TLU producer
-  send its data to all data collectors
-\item the association reader processor and data collector could be
-  handled as discussed in section~\ref{sec:datacollectors} (e.g. by name)
-\item the reader processors should be separate from the full system in
-  such a way, that their crashing does not impact the data taking;
-  furthermore, reader processors and run monitor should be able to
-  reconnect to a running DAQ. This could be accomplished by having run
-  control announce all available data collectors and log collectors to
-  reconnecting processors that are neither device data-sources or
-  device data-sinks and sending the currently active configuration
-  file (in-run configure and start).
-\item alternatively, the reader and run monitor constitute a separate
-  software that does only minimally or not at all interact with the
-  core EUDAQ system; this could provide benefits for the stability but
-  might make integration and configuration more complicated.
-\end{itemize}
-
-This run-monitor triggered data retrieval mechanism can be modified to
-include TLU-issued markers that are signaled to all connected DAQ
-systems, allowing hardware-aided pre-selection of packets: this can be
-performed in two steps. First, a hardware signal from the TLU to all
-DAQs is issued on request to allow very fast devices to cache packets
-(e.g. into a separate data collector) for later retrieval by the
-\emph{run monitor}. This TLU signal is timestamped and included in the
-next packet to mark it. Then, the \emph{reader processors} are
-requested to send all packets containing such TLU marker timestamp. If
-a DAQ does not include a timestamp for this signal in its packets,
-either the run monitor or the \emph{reader} determines the device's
-packet(s) that would correspond to the time/trigger range containing
-the marker signal and retrieves it.
-
-
-At first, only the latter mechanism (purely run-monitor-driven request
-for specific trigger number or clock range) will be implemented.
-
-\begin{figure}[htbp]
-  \centering
-  \include{schematic_reading}
-  \caption{Schematic layout of the proposed collection mechanism for
-    reading selected data packets corresponding to specific trigger
-    timestamp/number: (1) the run monitor requests meta-data from all
-    readers; (2) the run monitor makes consistency
-    checks on the meta data and requests data packets corresponding to
-    a set of triggers/time stamps; (3) the full data packets are read by the
-    readers either from disk or cache and sent to the run monitor,
-    where they can be further processed e.g. by an offline analysis framework.}
-\label{fig:schematicreading}
+  \begin{figure}[hbt]\centering
+      \include{schematic_dqm}
+      \caption{A schematic overview of the components of EUDAQ and the
+        foreseen data flow for version~2.0. Shown is the communication between
+        components when writing data from multiple data sources
+        (devices/Producers) to local data sinks (DataCollectors) and
+        monitoring the system online based on a partial sub-set of the
+        stored data merged by a central data quality monitoring
+        process (Online DQM \& Merger).}
+  \label{fig:mdc}
 \end{figure}
 
-To be decided/discussed:
-\begin{itemize}
-\item Should the reader and run monitor be implemented in the EUDAQ
-  framwork or work as separate tools?
-\item How could the algorithm for identifying correct data packets
-  from meta data work in the various use cases and levels of TLU integration?
-\item Specifically, how to treat DAQs running without TLU-synchronization?
-\item How does the \emph{run monitor} access the information collected
-  by the TLU producer?
-\end{itemize}
+As described in the previous sections, EUDAQ~2.0 will allow devices to
+record their data in asynchronous data streams that is stored on
+different physical machines. This poses additional challenges for
+online consistency checks and online monitoring which typically
+provides e.g. correlation plots to allow the user to verify the
+correct operation of all DAQ systems.
+
+By relying on online checks based on the trigger information that each
+device's Producer stores in the meta information of its Packets and a
+separate data quality monitoring (DQM) system, EUDAQ~2.0 will be able
+to provide more thorough and flexible online verification and
+monitoring than previous releases.
+
+For devices that make use of the new synchronous TLU interface,
+the correct and synchronous operation can be assessed based on the trigger
+and clock information that is expected to be common between all
+devices. Since the time stamped trigger information is stored within
+the meta information field of each corresponding Packet, the
+verification of this data between devices and the matching of Packets
+belonging to the same trigger can be done by meta data alone.
 
 
-\subsection{Online monitoring}
-\label{sec:online-monitoring}
-Online monitoring (i.e. correlation plots) potentially very difficult:
+The task will be performed
+by a central \emph{Run Monitor} processor while the retrieval of the
+packets will be performed by \emph{Reader} processors as shown in
+figure~\ref{fig:mdc}. These collect packets (or
+optionally their meta-data only) by accessing the files written by the
+data collectors and retrieving specific trigger and clock ranges. For
+this purpose, the a copy of each Packet's meta data and the offset
+within the data file is stored in an \emph{index
+  file} to speed up the search for specific Packets.
 
-\begin{itemize}
-\item data stream are now asynchronous between devices
-\item data is stored at several locations
-\item data blocks are potentially large i.e. spanning many triggers
-\end{itemize}
+The
+run monitor can write the thus retrieved Packets to disk, creating a
+locally available sub-set of the
+full data corresponding to a specific trigger range and that would be suited
+for further processing by the existing online monitor or an immediate
+offline analysis based e.g. on EUTelescope.
 
-However, online monitoring of a device class (e.g. all Mimosa planes)
-is still possible with only minor adjustments to the current online
-monitor.
+All components of the DQM system will be operating separately from the
+central DAQ modules to minimize interference and allow for a later
+startup. However, the components will be based on and part of the
+EUDAQ classes and will be using the same network communication interfaces.
 
-Correlations, even of tracks fitted to aligned hits, could be studied
-in immediate offline analysis.
 
-Using the polling mechanism discussed before that flushes e.g. ranges of triggers to a
-central location, the integrity checks could be extended to a
-semi-online monitoring based on an offline analysis of the collected data.
-
-Advantages of using the offline analysis framework:
-\begin{itemize}
-\item very modular approach
-\item all work spent on integration benefits the later analysis
-\item data is thoroughly and in more detail verified than (easily) possible
-  with pure online monitoring
-\end{itemize}
-
-\section{Analysis}
+\section{EUTelescope 1.0 -- A Powerful Toolset for Track Reconstruction }
 \label{sec:analysis}
-The analysis chain will be based on the EUTelescope framework. The
-goal is to deliver time-tagged tracks from the telescope that can be
-matched to the DUT data.
 
-The conversion to LCIO, clustering, and transformation of timing
-information to the TLU clock as global reference can be performed on
-each data sample separately. But for track finding, all data belonging
-to a given trigger needs to be present to allow spacial matching. The
-work flow for the telescope data (Mimosa26 and timing reference plane)
-could look as follows:
+EUTelescope is a generic set of processors that run in ILCSoft's Marlin
+framework providing tools for clustering, alignment, track
+reconstruction, and data analysis. Originally developed for the EUDET
+telescope, it has since been used in other setups such as
+the CMS Pixel telescope \cite{spannagel2012}.
 
-\begin{enumerate}
-\item convert data to LCIO
-\item use information from TLU to synchronize timing information to the
-  TLU clock
-\item verify that all triggers are present and have been seen at the
-  correct time; correct if possible (optionally).
-\item store hits in $x,y,z$ and $t_1, t_2$ coordinates, where the
-  latter determine the time bin in which this hit occurred.
-\item do spacial track matching, associate the smallest time interval
-  found in a fitted hit with the track.
-\item match time-tagged telescope tracks with DUT for analysis.
-\end{enumerate}
+Especially when analyzing data recorded at low-energy beams such as
+the DESY-II or ELSA testbeam facilities, it is important to take into
+account effects of multiple scattering. Therefore, the upcoming 1.0
+release of EUTelescope will provide tracking based on {General Broken
+  Lines (GBL)} \cite{Kleinwort:2012np} which treats scattering more
+accurately in all materials present.  GBL also offers alignment
+capabilities using a direct interface to {Millepede-II}.
 
-Implications:
-\begin{itemize}
-\item after repeating this for all data streams, the resulting LCIO
-  event corresponds to a specific trigger ID and will have data
-  collections from all devices.
-\item still, the final event might not be assigned a single but
-  several triggers if they were issued quicker than the
-  integration time of the fastest device.
-\end{itemize}
+Furthermore, a new {geometric clustering algorithm} allowing for generic
+pixel shapes and combinations has been developed together with a
+simplified geometry core based on ROOT::TGeo.
 
-Requirements/changes needed/to be discussed:
-\begin{itemize}
-\item make TLU information centrally available and store it in LCIO format
-\item time stamps $t_1$ and $t_2$ in the LCIO event (what floating
-  point precision is required?)
-\item write TLU clock sync for Mimosa26 data with multiple triggers
-  per frame
-\item figure out how to efficiently handle multiple LCIO files and merge
-  collections spanned across several events ($\rightarrow$ ask ILCSoft developers).
-\item decide whether to output time-tagged telescope tracks or to
-  handle data of telescope and DUT simultaneously when merging
-\item produce monitoring/correlation histograms useful during data taking
-\item provide geometry information up front (e.g. within EUDAQ)
-\item optimize the analysis chain to work out-of-the-box in as many
-  cases as possible (e.g. automatic iterative alignment)
-\end{itemize}
+These changes significantly simplify the analysis flow, easily allow for
+an iterative alignment strategy, and improve the usability and
+run-time speed. EUTelescope~1.0 will therefore be better suited for
+immediate offline-analysis directly after online merging in EUDAQ,
+providing a powerful semi-online monitoring facility.
+
+\section{Continuous Operation Needs Active Development}
+
+With the successful usuage of the first EUDET telescope for testbeam studies since
+2007, four additional copies have been produced and are being operated in
+various beams around the world. This results in a constantly growing user base
+with evolving needs.
+These have been the focus particularly of recent releases of EUDAQ and
+EUTelescope, by constantly extending the available documentation and
+examples, by providing support through online forums and
+workshops, and by making the installation easy and straightforward.
+
+The quickly progressing development over the past years has been made
+possible by the open development model followed for both software
+frameworks which encourages external contributions. With open source
+code managed through \emph{git} and hosted on GitHub, new functionality has
+been integrated in close collaboration with developers from many different
+institutes. Using automated nightly builds based on the CMake/CTest toolset, problems can be
+identified and fixed early in the development cycle. Furthermore, data-driven regression
+tests are used to constantly verify the output of the frameworks
+against a set of known good references. This ensures the stability and
+continued validity of the results.
+
+
+\section{Summary}
+EUDAQ and EUTelescope are central software components of the EUDET
+beam telescopes and a key factor in their success. They offer the
+user a ready-to-use framework for DAQ integration and testbeam data
+analysis and are constantly being evolved to meet the user's
+needs. For the next-generation AIDA telescope, both EUDAQ and
+EUTelescopes are being extended to be able to cope with higher data rates, to
+provide an extended data format and to handle more challenging offline
+synchronization and alignment tasks.
+
+Specifically the additional meta data available in EUDAQ will make more thorough consistency
+checks and online verification possible: as devices obtain their clock
+directly from the TLU, synchronization loss and missed triggers can be
+reliably detected online. For this purpose, the meta data only will be
+collected and verified by a central data quality monitoring
+process. Additionally, the data can be (partially) merged online
+by requesting packets containing specific trigger ranges -- this
+allows to generate e.g. correlation plots online or even run the data
+analysis on a sub-set of the data while the recording is ongoing.
+
+Even with these fundamental changes to the data-handling concept of EUDAQ, a lot of
+effort has been invested to make the modifications backward-compatible
+in order to preserve existing device integrations by the users.
+
+
+
 
 \section{Acknowledgments}
 
@@ -629,49 +466,6 @@ Requirements/changes needed/to be discussed:
   AIDA, grant agreement no. 262025. The support is gratefully
   acknowledged. 
   \emph{Disclaimer}: The information herein only reflects the views of its authors and not those of the European Commission and no warranty expressed or implied is made with regard to such information or its use.
-
-\newpage
-\appendix
-
-\section{Packet header: \emph{Packet type} field values}
-\label{app:packettype}
-Values to be supported for the major field:
-\begin{enumerate}
-\item TLU
-\item Mimosa26
-\item ATLAS FEI-4
-\item CMS Pixel
-\item TimePix2
-\item TimePix3
-\item $\ldots$?
-\end{enumerate}
-
-\section{Mimosa Readout}
-
-\subsection{Firmware}
-\label{sec:firmware}
-\begin{itemize}
-\item replace existing firmware with ``official'' one from IPHC Strasbourg
-\item request support for continuous readout
-\item use global clock from TLU?
-\end{itemize}
-
-\subsection{Producer/connection to EUDAQ}
-\label{sec:prod-eudaq}
-\begin{itemize}
-\item drop current NI producer and write Mimosa producer interfaced
-  to Strasbourg DAQ software
-\item potentially needs to run on Windows; communication to Strasbourg
-  DAQ through TCP/IP interface?
-\item Clocking out of the TLU trigger ID should only be performed once
-  per frame maximum.
-\item when packaging data to be sent to data collector, ``pad''
-  buffered frames with one earlier and one later frame to guarantee
-  that triggers received during the readout are contained in this data
-  block.
-\item record position of pivot pixel at time of trigger \emph{or} use
-  global TLU clock and time-stamp beginning/end of frames
-\end{itemize}
 
 \printbibliography
 
