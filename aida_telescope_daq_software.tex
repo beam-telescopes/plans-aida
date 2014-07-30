@@ -1,5 +1,5 @@
 %%% Preamble
-\documentclass[paper=a4, fontsize=11pt]{scrartcl}	% Article class of KOMA-script with 11pt font and a4 format
+\documentclass[paper=a4, fontsize=11pt, titlepage]{scrartcl}	% Article class of KOMA-script with 11pt font and a4 format
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 
@@ -29,6 +29,8 @@
 %%% Nice tables
 \usepackage{booktabs}
 
+\usepackage{relsize}		% For \smaller
+
 %%% Packages for drawings
 \usepackage{tikz}
 \usetikzlibrary{chains,positioning,fit,decorations.pathreplacing,shapes,calc,shadows,fadings}
@@ -42,20 +44,13 @@
 \definecolor{darkgreen}{rgb}{0.078,0.667,0.016}
 \definecolor{gold}{rgb}{0.85,0.65,0}
 \definecolor{deepgreen}{rgb}{0.,0.5,0.}
+\definecolor{aidablue}{RGB}{42,42,127}
 
 \newcommand{\unit}[1]{\, \mathrm{#1}} % Einheiten in math. Formeln
                                       % richtig darstellen
 
-%%% Custom headers/footers (fancyhdr package)
-\usepackage{fancyhdr}
-\pagestyle{fancyplain}
-\fancyhead{}				% No page header
-\fancyfoot[L]{}		% left
-\fancyfoot[C]{}			% center
-\fancyfoot[R]{\thepage}		% Pagenumbering
-\renewcommand{\headrulewidth}{0pt}			% Remove header underlines
-\renewcommand{\footrulewidth}{0pt}			% Remove footer underlines
-\setlength{\headheight}{13.6pt}
+%%% Custom headers/footers
+\usepackage{scrpage2}
 
 
 %%% Equation and float numbering
@@ -67,22 +62,21 @@
 \usepackage{enumitem}
 \setlist{noitemsep} % \setlist{nolistsep} for least space or \setlist{noitemsep} to leave space around whole list
 
-%%% Maketitle metadata
-\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} 	% Horizontal rule
+%%% set up abstract field
+\newsavebox{\abstractbox}
+\renewenvironment{abstract}
+  {\begin{lrbox}{0}\begin{minipage}{\textwidth}
+   \begin{center}\normalfont\sectfont\abstractname\end{center}\quotation}
+  {\endquotation\end{minipage}\end{lrbox}%
+   \global\setbox\abstractbox=\box0 }
 
-\title{
-		%\vspace{-1in} 	
-		\usefont{OT1}{bch}{b}{n}
-%		\normalfont \normalsize \textsc{} \\ [25pt]
-		\horrule{0.5pt} \\[0.4cm]
-		\huge Evolving the DAQ and
-                Analysis Software of the AIDA Telescope: Toward high
-                rates and
-                \textit{one-trigger-per-particle} Operation\\
-		\horrule{2pt} \\[0.5cm]
-}
-\author{}
-\date{\today}
+\usepackage{etoolbox}
+\makeatletter
+\expandafter\patchcmd\csname\string\maketitle\endcsname
+  {\vskip\z@\@plus3fill}
+  {\vskip\z@\@plus2fill\box\abstractbox\vskip\z@\@plus1fill}
+  {}{}
+\makeatother
 
 
 %%% Begin document
@@ -91,7 +85,13 @@
 \pgfdeclarelayer{background} \pgfdeclarelayer{foreground}
 \pgfsetlayers{background,main,foreground}
 
-\abstract{A high resolution ($\sigma \approx \SI{2}{\micro\meter}$)
+\title{Evolving the DAQ and Analysis Software of the AIDA Telescope:
+  Toward high rates and \textit{one-trigger-per-particle} Operation}
+\author{Ulf Behrens, Alan Campbell, Francesco Crescioli, David Cussans,\\ Hanno Perrey, Richard Peschke, Igor Rubinskiy}
+\date{\today}
+
+\begin{abstract}
+  A high resolution ($\sigma \approx \SI{2}{\micro\meter}$)
   beam telescope based on monolithic active pixel sensors was
   developed within the EUDET collaboration. It has become the primary
   in-beam tool for many high-energy physics groups, largely due to its precise spatial
@@ -114,7 +114,9 @@
   In this contribution, we present the features of the current
   releases of both EUDAQ and EUTelescope and discuss the plans for
   further development toward an easy-to-use software stack with the capability
-  for high particle and data rates within the AIDA work package 9.3.}
+  for high particle and data rates within the AIDA work package 9.3.
+\end{abstract}
+
 
 \maketitle
 \section{Introduction}
@@ -175,12 +177,13 @@ detectors.
 \section{EUDAQ 2.0 -- A Flexible High-Rate Capable DAQ Framework}
 
 EUDAQ is a generic DAQ framework that has been successfully used in
-testbeams with the EUDET-family of beam telescopes since 2007.  It allows the
-easy (but optional) integration of the device-under-test and its DAQ
-into the telescope data stream and gives the user a central interface
-to control and monitor the operation of the full system. EUDAQ
-features a very modular design in which individual components
-communicate via TCP/IP and can run on different networked machines.
+testbeams with the EUDET-family of beam telescopes since 2007.  It
+allows the easy (but optional) integration of the device-under-test
+and its DAQ into the telescope data stream and gives the user a
+central interface to control and monitor the operation of the full
+system. EUDAQ features a very modular design in which individual
+components communicate via TCP/IP and can run on different networked
+machines.
 
 The central authority is called \emph{RunControl}. It provides the
 user with a choice of either a graphical or console-based interface
