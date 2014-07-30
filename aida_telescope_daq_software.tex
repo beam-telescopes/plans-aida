@@ -9,6 +9,16 @@
 \usepackage[pdftex]{graphicx}				% Enable pdflatex
 \usepackage{url}
 
+\usepackage{textcomp} %to get the \micro from the siunitx package right
+\usepackage{siunitx} %The siunitx package provides a set of tools for
+                     %authors to typeset quantities in a consistent
+                     %way. The package has an extended set of
+                     %configuration options which make it possible to
+                     %follow varying typographic conventions with the
+                     %same input syntax. The package includes
+                     %automated processing of numbers and units, and
+                     %the ability to control tabular alignment of numbers.
+
 \usepackage[hyperref=true, sorting=none]{biblatex}
 \bibliography{references}
 
@@ -33,6 +43,8 @@
 \definecolor{gold}{rgb}{0.85,0.65,0}
 \definecolor{deepgreen}{rgb}{0.,0.5,0.}
 
+\newcommand{\unit}[1]{\, \mathrm{#1}} % Einheiten in math. Formeln
+                                      % richtig darstellen
 
 %%% Custom headers/footers (fancyhdr package)
 \usepackage{fancyhdr}
@@ -128,10 +140,10 @@ detectors.
   software packages play a central role:
 
   \begin{itemize}
-  \item \eudaq{} \cite{eudaqsite}, a multi-platform data acquisition
+  \item EUDAQ \cite{eudaqsite}, a multi-platform data acquisition
     (DAQ) system that allows
     easy integration of the device-under-test, and
-  \item \eutel{} \cite{eutelsite}, a library that provides tools for the spatial
+  \item EUTelescope \cite{eutelsite}, a library that provides tools for the spatial
     reconstruction of particle tracks and the final data analysis.
   \end{itemize}
 
@@ -160,9 +172,9 @@ detectors.
   are foreseen to be released as versions EUDAQ~2.0 and
   EUTelescope~1.0 later this year.
 
-\section{\eudaq{} 2.0 -- A Flexible High-Rate Capable DAQ Framework}
+\section{EUDAQ 2.0 -- A Flexible High-Rate Capable DAQ Framework}
 
-\eudaq{} is a generic DAQ framework that has been successfully used in
+EUDAQ is a generic DAQ framework that has been successfully used in
 testbeams with the EUDET-family of beam telescopes since 2007.  It allows the
 easy (but optional) integration of the device-under-test and its DAQ
 into the telescope data stream and gives the user a central interface
