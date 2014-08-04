@@ -409,8 +409,17 @@ run-time speed. EUTelescope~1.0 will therefore be better suited for
 immediate offline-analysis directly after online merging in EUDAQ,
 providing a powerful semi-online monitoring facility.
 
-\section{Continuous Operation Needs Active Development}
+  \begin{figure}[htb]
+     \centering
+     \includegraphics[width=.65\linewidth]{images/loc.png}
+     \caption{Total number of lines of ``code'' (including comments,
+       documentation and helper scripts) of the two software
+       frameworks versus time. Selected major feature additions (red boxes),
+       releases (arrows) and refactorizations (blue box) have been highlighted.}
+     \label{fig:loc}
+   \end{figure}
 
+\section{Continuous Operation Needs Active Development}
 With the successful usuage of the first EUDET telescope for testbeam studies since
 2007, four additional copies have been produced and are being operated in
 various beams around the world. This results in a constantly growing user base
@@ -420,7 +429,8 @@ EUTelescope, by constantly extending the available documentation and
 examples, by providing support through online forums and
 workshops, and by making the installation easy and straightforward.
 
-The quickly progressing development over the past years has been made
+The quickly progressing development over the past years as illustrated
+in figure~/ref{fig:loc} has been made
 possible by the open development model followed for both software
 frameworks which encourages external contributions. With open source
 code managed through \emph{git} and hosted on GitHub, new functionality has
